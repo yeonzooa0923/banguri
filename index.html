@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방우리 프로필 🍒</title>
+    
+    <!-- 브라우저 탭 아이콘 (파비콘) 기본 설정 (추후 JS로 연동 처리) -->
+    <link id="favicon-link" class="rounded-full" rel="icon" href="https://stimg.afreecatv.com/LOGO/ls/lsh8071/lsh8071.jpg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Gowun Dodum (Body) & Gaegu (Title/Cute Accent) -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat v10) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // 다크모드 활성화
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Gowun Dodum', 'sans-serif'],
+                        cute: ['Gaegu', 'cursive'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#ffe4e6', // 연한 파스텔 핑크
+                            DEFAULT: '#ff8da1', // 화사하고 말랑한 체리 핑크
+                            dark: '#db2777',  // 포인트 딥 핑크
+                            deep: '#831843',  // 깊은 체리 버건디
+                            orange: '#f97316', // 상큼한 오렌지 포인트
+                            orangelight: '#fff7ed', // 부드러운 오렌지 배경
+                            blue: '#3b82f6', // 시원한 블루 포인트 (SOOP 테마)
+                            bluelight: '#eff6ff' // 부드러운 블루 배경
+                        },
+                        warm: {
+                            cream: '#fffcf9',  // 따뜻한 크림 배경
+                            cocoa: '#4338ca', // 블루 믹스 포인트 컬러
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        html { scroll-behavior: smooth; }
+        /* 스크롤바 커스텀 (말랑말랑한 디자인) */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #fffaf7; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-track { background: #1e1b18; }
+        ::-webkit-scrollbar-thumb { background: #ffd1d8; border-radius: 10px; border: 2px solid #fffaf7; }
+        .dark ::-webkit-scrollbar-thumb { background: #9d174d; border: 2px solid #1e1b18; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff8da1; }
+
+        /* 말랑말랑 바운스 효과 클래스 */
+        .squishy {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .squishy:hover {
+            transform: translateY(-5px) scale(1.03);
+        }
+        .squishy:active {
+            transform: translateY(1px) scale(0.97);
+        }
+
+        /* 둥둥 떠 있는 귀여운 모션 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1.5deg); }
+        }
+        .floating-soft {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* 반짝이는 효과 */
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .sparkle-slow {
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        /* 체리, 오렌지 파티클 낙하 애니메이션 */
+        .leaf-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#fffcf9] dark:bg-[#181514] text-[#4c443e] dark:text-[#ebdcd0] font-sans antialiased min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-hidden">
+
+    <!-- Falling cherry / orange background particles -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-75 dark:opacity-35" id="leaf-bg-effects"></div>
+
+    <!-- Header / Navigation -->
+    <header class="bg-[#fffcf9]/95 dark:bg-[#181514]/95 backdrop-blur-md sticky top-0 z-50 transition-colors duration-300 border-b-4 border-dashed border-[#ffdcd1] dark:border-[#382620]">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-18 py-3">
+                <!-- Logo/Name -->
+                <div class="flex-shrink-0 flex items-center">
+                    <a href="#" class="text-2xl font-bold font-cute text-brand-dark flex items-center gap-2 squishy">
+                        <span class="w-9 h-9 rounded-full bg-brand-light dark:bg-brand-deep/30 flex items-center justify-center text-xl floating-soft">🍒</span>
+                        <span class="dark:text-white tracking-wide">방우리</span>
+                    </a>
+                </div>
+                <!-- Desktop Menu -->
+                <nav class="hidden md:flex space-x-6 items-center">
+                    <a href="#profile" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">프로필</a>
+                    <a href="#notice" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">공지사항</a>
+                    <a href="#schedule" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">주간 일정</a>
+                    <a href="#karma" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">업보 현황</a>
+                    
+                    <!-- Dark Mode Toggle Button -->
+                    <button id="theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-brand-light dark:hover:bg-[#25211e] p-2.5 rounded-2xl transition-all squishy">
+                        <i class="fa-solid fa-moon text-lg w-5 h-5 flex items-center justify-center"></i>
+                    </button>
+                </nav>
+                <!-- Mobile Menu & Theme Button -->
+                <div class="md:hidden flex items-center gap-2">
+                    <button id="mobile-theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-brand-light dark:hover:bg-[#25211e] p-2.5 rounded-2xl transition-colors squishy">
+                        <i class="fa-solid fa-moon text-lg w-5 h-5 flex items-center justify-center"></i>
+                    </button>
+                    <button id="mobile-menu-btn" class="text-gray-650 dark:text-gray-300 focus:outline-none p-2.5 hover:bg-brand-light dark:hover:bg-[#25211e] rounded-2xl transition-colors">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#fffcf9] dark:bg-[#181514] border-t border-gray-100 dark:border-gray-800 p-3 space-y-2">
+            <a href="#profile" class="block text-gray-650 dark:text-gray-300 hover:bg-brand-light dark:hover:bg-[#25211e] hover:text-brand-dark px-4 py-2.5 rounded-2xl text-base font-bold transition-all">프로필</a>
+            <a href="#notice" class="block text-gray-650 dark:text-gray-300 hover:bg-brand-light dark:hover:bg-[#25211e] hover:text-brand-dark px-4 py-2.5 rounded-2xl text-base font-bold transition-all">공지사항</a>
+            <a href="#schedule" class="block text-gray-650 dark:text-gray-300 hover:bg-brand-light dark:hover:bg-[#25211e] hover:text-brand-dark px-4 py-2.5 rounded-2xl text-base font-bold transition-all">주간 일정</a>
+            <a href="#karma" class="block text-gray-650 dark:text-gray-300 hover:bg-brand-light dark:hover:bg-[#25211e] hover:text-brand-dark px-4 py-2.5 rounded-2xl text-base font-bold transition-all">업보 현황</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 relative z-10">
+
+        <!-- 1. Profile Section -->
+        <section id="profile" class="scroll-mt-24 flex flex-col gap-6">
+            
+            <!-- Header Card (Cherry Pink & White bubbly container) -->
+            <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_12px_40px_rgba(255,220,225,0.4)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] overflow-hidden transition-all duration-300">
+                <!-- Cover Image -->
+                <div class="h-36 sm:h-56 w-full relative overflow-hidden bg-brand-light dark:bg-[#2a211e]">
+                    <img id="profile-banner-img" src="" 
+                         onerror="this.src='https://placehold.co/1200x400/ffe4e6/db2777?text=🍒+Uri+Station'" 
+                         class="w-full h-full object-cover absolute inset-0" alt="방송국 배너">
+                    <div class="absolute inset-0 bg-gradient-to-t from-white/30 dark:from-black/30"></div>
+                </div>
+                
+                <div class="px-6 sm:px-10 pb-8 flex flex-col sm:flex-row relative">
+                    <!-- Avatar dynamically linked to SOOP profile -->
+                    <div class="-mt-16 sm:-mt-24 mb-4 sm:mb-0 sm:mr-8 flex-shrink-0 flex justify-center sm:block relative z-10">
+                        <img class="h-32 w-32 sm:h-48 sm:w-48 rounded-full border-8 border-white dark:border-[#1f1a18] shadow-[0_8px_24px_rgba(219,39,119,0.15)] object-cover bg-white dark:bg-gray-800 transition-transform hover:rotate-6 duration-300" 
+                             src="https://stimg.afreecatv.com/LOGO/ls/lsh8071/lsh8071.jpg" 
+                             id="avatar-display"
+                             onerror="this.onerror=null; this.src='https://placehold.co/400x400/ff8da1/ffffff?text=Uri'"
+                             alt="방우리 아바타">
+                    </div>
+                    
+                    <!-- Info -->
+                    <div class="pt-4 flex-grow text-center sm:text-left flex flex-col sm:justify-between">
+                        <div>
+                            <div class="flex items-center justify-center sm:justify-start gap-1.5 mb-1.5">
+                                <span class="text-brand-dark dark:text-brand font-bold text-xs bg-brand-light dark:bg-brand-deep/30 px-3 py-1 rounded-full"><i class="fa-solid fa-star animate-bounce"></i> 종합 버추얼 스트리머</span>
+                            </div>
+                            <h1 class="text-4xl font-black font-cute text-gray-950 dark:text-white mb-3 flex items-baseline justify-center sm:justify-start gap-2.5">
+                                방우리
+                                <span class="text-lg font-sans text-brand-blue font-bold tracking-tight">Bang Uri</span>
+                            </h1>
+                            
+                            <div class="flex flex-wrap justify-center sm:justify-start gap-2 mb-6">
+                                <span class="px-3.5 py-1 bg-brand-light/60 dark:bg-brand-deep/20 text-brand-dark dark:text-brand rounded-full text-xs font-bold border border-brand/30">생일 2002.09.13 · 첫 방송 2024.07.05</span>
+                                <span class="px-3.5 py-1 bg-[#fff7ed] dark:bg-orange-950/20 text-brand-orange dark:text-orange-400 rounded-full text-xs font-bold border border-brand-orange/30">팬닉 : 맹_ · [버찌단] 🍒</span>
+                            </div>
+                        </div>
+
+                        <!-- Social Links with dynamic anchors -->
+                        <div class="flex justify-center sm:justify-start gap-4">
+                            <a id="profile-soop-link" href="https://www.sooplive.com/station/lsh8071" target="_blank" class="w-12 h-12 rounded-full bg-brand-blue text-white flex items-center justify-center hover:bg-blue-600 transition-all hover:scale-110 active:scale-90 shadow-md squishy" title="SOOP 방송국">
+                                <i class="fa-solid fa-tv text-lg"></i>
+                            </a>
+                            <a id="profile-youtube-link" href="https://www.youtube.com/@Bang_Uri" target="_blank" class="w-12 h-12 rounded-full bg-brand hover:bg-brand-dark text-white flex items-center justify-center transition-all hover:scale-110 active:scale-90 shadow-md squishy" title="유튜브 메인">
+                                <i class="fa-brands fa-youtube text-lg"></i>
+                            </a>
+                            <a id="profile-horror-link" href="https://www.youtube.com/@bangurihorror" target="_blank" class="w-12 h-12 rounded-full bg-[#f97316] hover:bg-orange-600 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-90 shadow-md squishy" title="종겜 유튜브 🎮">
+                                <i class="fa-solid fa-gamepad text-lg"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intro & D-Day 2열 레이아웃 그리드 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Intro Card (Wobbly Cloud card) -->
+                <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] p-6 transition-colors duration-300 relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="flex items-center gap-2 text-xl font-bold font-cute text-gray-950 dark:text-white">
+                                <span class="text-xl">🍒</span> 방우리는요 !
+                            </h3>
+                            <button id="admin-profile-edit-btn" onclick="openProfileEditModal()" class="hidden text-gray-400 hover:text-brand-dark transition-colors p-1" title="프로필 정보 수정">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
+                        <p id="profile-intro-text" class="text-[#564d46] dark:text-[#ebdcd0] text-sm leading-relaxed mb-6 whitespace-pre-wrap font-semibold">
+                            <!-- JS Rendering -->
+                        </p>
+                    </div>
+                    <div id="profile-tags-container" class="flex flex-wrap gap-2 pt-4 border-t-2 border-dashed border-[#ffdcd1] dark:border-[#382620]">
+                        <!-- JS Rendering -->
+                    </div>
+                </div>
+
+                <!-- D-Day & Anniversary Card -->
+                <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] p-6 transition-colors duration-300 flex flex-col justify-between">
+                    <div>
+                        <h3 class="flex items-center gap-2 text-xl font-bold font-cute text-gray-950 dark:text-white mb-4">
+                            <span class="text-xl">⏰</span> 기념일 & 디데이
+                        </h3>
+                        <div id="dday-container" class="space-y-3.5">
+                            <!-- JS Rendering -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Broadcast Info Card -->
+            <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] p-6 transition-colors duration-300">
+                <h3 class="flex items-center gap-2 text-xl font-bold font-cute text-gray-950 dark:text-white mb-5">
+                    <span class="text-xl">📺</span> 방송 안내판
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 p-3 bg-brand-light/40 dark:bg-brand-deep/10 rounded-2xl font-bold">
+                        <span class="text-brand-dark dark:text-brand font-black text-sm w-24 sm:w-28 whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-clock mr-1"></i> 방송 시간</span>
+                        <span id="profile-broadcast-time" class="text-gray-750 dark:text-gray-300 text-sm font-semibold"><!-- JS --></span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 p-3 bg-brand-light/40 dark:bg-brand-deep/10 rounded-2xl font-bold">
+                        <span class="text-brand-dark dark:text-brand font-black text-sm w-24 sm:w-28 whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-heart mr-1"></i> 방송 콘텐츠</span>
+                        <span id="profile-broadcast-content" class="text-gray-750 dark:text-gray-300 text-sm font-semibold"><!-- JS --></span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 p-3 bg-brand-light/40 dark:bg-brand-deep/10 rounded-2xl font-bold">
+                        <span class="text-brand-dark dark:text-brand font-black text-sm w-24 sm:w-28 whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-gamepad mr-1"></i> 주요 게임</span>
+                        <span id="profile-broadcast-game" class="text-gray-750 dark:text-gray-300 text-sm font-semibold"><!-- JS --></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Likes & Dislikes Card -->
+            <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] p-6 transition-colors duration-300">
+                <h3 class="flex items-center gap-2 text-xl font-bold font-cute text-gray-950 dark:text-white mb-6">
+                    <span class="text-xl">🌸</span> 우리님의 취향 목록!
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="bg-[#fcfaf8] dark:bg-[#25201d] p-5 rounded-2xl border-2 border-dashed border-rose-100 dark:border-rose-950">
+                        <p class="text-base font-black text-brand-dark dark:text-brand mb-3 flex items-center gap-1.5 font-cute"><span class="text-lg">🍒</span> 좋아하는 거</p>
+                        <div id="profile-likes-container" class="flex flex-wrap gap-2">
+                            <!-- JS Rendering -->
+                        </div>
+                    </div>
+                    <div class="bg-[#fcfaf8] dark:bg-[#25201d] p-5 rounded-2xl border-2 border-dashed border-orange-100 dark:border-orange-950">
+                        <p class="text-base font-black text-brand-orange dark:text-orange-450 mb-3 flex items-center gap-1.5 font-cute"><span class="text-lg">🚫</span> 싫어하는 거</p>
+                        <div id="profile-dislikes-container" class="flex flex-wrap gap-2">
+                            <!-- JS Rendering -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 2. Notice & Schedule Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Notice Section -->
+            <section id="notice" class="scroll-mt-24">
+                <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none p-6 h-full border-4 border-brand-orange/40 dark:border-brand-deep/50 transition-colors duration-300 relative">
+                    <div class="flex items-center justify-between mb-5 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl animate-bounce">📢</span>
+                            <h2 class="text-2xl font-black font-cute text-gray-850 dark:text-white">공지사항</h2>
+                        </div>
+                        <button id="admin-notice-edit-btn" onclick="openNoticeEditModal()" class="hidden text-gray-400 hover:text-brand-dark transition-colors p-1" title="공지사항 수정">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                    <ul id="notice-list" class="space-y-4">
+                        <!-- 동적 렌더링 영역 -->
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Schedule Section -->
+            <section id="schedule" class="scroll-mt-24">
+                <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none p-6 h-full border-4 border-brand/50 dark:border-rose-950/50 transition-colors duration-300 relative">
+                    <div class="flex items-center justify-between mb-5 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">🗓️</span>
+                            <h2 class="text-2xl font-black font-cute text-gray-850 dark:text-white">주간 일정</h2>
+                        </div>
+                        <button id="admin-schedule-edit-btn" onclick="openScheduleEditModal()" class="hidden text-gray-400 hover:text-brand-dark transition-colors p-1" title="주간 일정 수정">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="schedule-list" class="space-y-3">
+                        <!-- 동적 렌더링 영역 -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 3. Karma (업보) Section -->
+        <section id="karma" class="scroll-mt-24">
+            <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_12px_40px_rgba(255,220,225,0.4)] dark:shadow-none p-6 border-4 border-brand transition-colors duration-300">
+                
+                <!-- Header -->
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-4">
+                    <div>
+                        <div class="text-brand-dark dark:text-brand font-bold tracking-widest text-xs mb-1.5 flex items-center gap-2">
+                            🍒 BANG URI UPBO
+                            <button onclick="openAdminLoginModal()" class="text-gray-300 hover:text-brand-dark transition-all duration-300 hover:rotate-90" title="관리자 모드 켜기">
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                        </div>
+                        <h2 class="text-3xl font-black font-cute text-gray-850 dark:text-white tracking-tight">업보 현황판</h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="loading-indicator" class="hidden text-brand-dark dark:text-brand text-xs font-bold animate-pulse bg-brand-light dark:bg-brand-deep/30 px-3 py-1 rounded-full">데이터 동기화 중...</div>
+                        <div class="bg-[#faf7f4] dark:bg-[#2a211e] text-gray-500 dark:text-gray-400 text-xs px-4 py-2 rounded-full font-bold border border-[#ffdcd1] dark:border-[#382620]">
+                            마지막 갱신일: <span id="upbo-date"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-magnifying-glass text-brand-dark dark:text-brand"></i>
+                        </div>
+                        <input type="text" id="upbo-search" class="w-full bg-[#faf7f4] dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl focus:ring-2 focus:ring-brand focus:border-brand-dark block pl-11 p-3.5 outline-none font-bold" placeholder="닉네임 또는 아이디 검색...">
+                    </div>
+                    <!-- Admin: Add User Button -->
+                    <button id="admin-add-user-btn" onclick="openAddUserModal()" class="hidden items-center justify-center bg-brand hover:bg-brand-dark text-white font-black py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg whitespace-nowrap transform hover:-translate-y-0.5 squishy">
+                        <i class="fa-solid fa-user-plus mr-2"></i>맹이 추가
+                    </button>
+                </div>
+
+                <!-- User Grid -->
+                <div id="upbo-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Cards will be dynamically inserted here by JS -->
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Admin Login Modal -->
+        <div id="admin-login-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm p-6 transform scale-95 transition-all duration-300 border-4 border-brand">
+                <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white mb-2">관리자 모드</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">비밀번호를 입력하여 관리자 인증을 완료해주세요.</p>
+                <input type="password" id="admin-pin" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 mb-4 outline-none font-bold text-center tracking-widest focus:border-brand" placeholder="비밀번호 입력">
+                <div class="flex justify-end gap-2.5">
+                    <button onclick="closeAdminLoginModal()" class="px-5 py-2.5 rounded-2xl bg-gray-100 dark:bg-gray-850 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-250 dark:hover:bg-gray-700 transition-colors">취소</button>
+                    <button onclick="checkAdminPin()" class="px-5 py-2.5 rounded-2xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors">확인</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upbo Edit Modal -->
+        <div id="upbo-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-md overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[80vh]">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
+                    <div class="flex items-center gap-3" id="edit-modal-header"></div>
+                    <div class="flex items-center gap-2">
+                        <button id="delete-user-confirm-btn" class="hidden text-xs bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold px-3 py-1.5 rounded-xl hover:bg-red-100 transition-all">
+                            <i class="fa-solid fa-user-minus mr-1"></i>삭제
+                        </button>
+                        <button onclick="closeUpboEditModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-5 flex-grow overflow-y-auto" id="edit-modal-body"></div>
+                <div class="p-4 border-t-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-[#faf7f4] dark:bg-[#181514]">
+                    <div class="flex gap-2">
+                        <input type="text" id="new-item-name" class="flex-grow bg-white dark:bg-[#25211e] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-bold focus:border-brand" placeholder="추가할 업보 항목명">
+                        <button onclick="addNewItem()" class="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-black hover:bg-brand-dark transition-colors whitespace-nowrap">추가</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add User Modal -->
+        <div id="add-user-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm p-6 transform scale-95 transition-all duration-300 border-4 border-brand">
+                <div class="flex justify-between items-center mb-4 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-3">
+                    <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white flex items-center gap-2"><span class="text-xl">🍒</span> 새 버찌단 유저 추가</h3>
+                    <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">SOOP 아이디 (선택)</label>
+                        <input type="text" id="new-user-id" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-semibold focus:border-brand" placeholder="프사 자동 연동용">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">닉네임 (필수)</label>
+                        <input type="text" id="new-user-nickname" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-semibold focus:border-brand" placeholder="닉네임 입력">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-2.5">
+                    <button onclick="closeAddUserModal()" class="px-5 py-2.5 rounded-2xl bg-gray-100 dark:bg-gray-850 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-250 dark:hover:bg-gray-700 transition-colors">취소</button>
+                    <button onclick="submitNewUser()" class="px-5 py-2.5 rounded-2xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors">추가하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notice Edit Modal -->
+        <div id="notice-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-lg overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[85vh]">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
+                    <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white flex items-center gap-2">📢 공지사항 관리</h3>
+                    <button onclick="closeNoticeEditModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-5 flex-grow overflow-y-auto space-y-3" id="notice-edit-list"></div>
+                <div class="p-4 border-t-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-[#faf7f4] dark:bg-[#181514] space-y-3">
+                    <div class="flex gap-2">
+                        <select id="new-notice-type" class="bg-white dark:bg-[#25211e] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none w-24 font-bold">
+                            <option value="필독">필독</option>
+                            <option value="안내">안내</option>
+                            <option value="일반">일반</option>
+                        </select>
+                        <input type="text" id="new-notice-content" class="flex-grow bg-white dark:bg-[#25211e] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand" placeholder="공지 내용 입력...">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-notice-link" class="flex-grow bg-white dark:bg-[#25211e] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand" placeholder="이동 경로 주소 (선택)">
+                        <button onclick="addNewNotice()" class="bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-black hover:bg-brand-dark transition-colors whitespace-nowrap shadow-sm">추가</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Edit Modal -->
+        <div id="schedule-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[85vh]">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/40 dark:bg-brand-deep/20">
+                    <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white flex items-center gap-2">🗓️ 주간 일정 관리</h3>
+                    <button onclick="closeScheduleEditModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-5 flex-grow overflow-y-auto space-y-3.5" id="schedule-edit-list"></div>
+                <div class="p-4 border-t-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-[#faf7f4] dark:bg-[#181514] flex justify-end">
+                    <button onclick="saveScheduleChanges()" class="bg-brand hover:bg-brand-dark text-white px-6 py-2.5 rounded-2xl font-black shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0">저장하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Edit Modal -->
+        <div id="profile-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+            <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-lg overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[90vh]">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
+                    <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white flex items-center gap-2">🍒 프로필 정보 관리</h3>
+                    <button onclick="closeProfileEditModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-5 flex-grow overflow-y-auto space-y-6">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-2"><i class="fa-solid fa-image text-brand-dark"></i> 배너 이미지 URL</h4>
+                        <input type="text" id="edit-profile-banner" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl p-3 outline-none font-semibold focus:border-brand" placeholder="직접 이미지 인터넷 주소(URL)를 입력해주세요.">
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-2"><i class="fa-solid fa-seedling text-brand-dark"></i> 소개글</h4>
+                        <textarea id="edit-profile-intro" rows="3" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl p-3 outline-none resize-none mb-2 font-semibold focus:border-brand"></textarea>
+                        <label class="block text-sm font-bold text-gray-950 dark:text-white mb-2 mt-3">해시태그 (쉼표로 구분)</label>
+                        <input type="text" id="edit-profile-tags" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl p-3 outline-none font-semibold focus:border-brand">
+                    </div>
+                    <hr class="border-dashed border-[#ffdcd1] dark:border-[#382620]">
+
+                    <!-- Admin SNS Configuration -->
+                    <div>
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-3"><i class="fa-solid fa-share-nodes text-brand-dark"></i> 외부 링크 설정</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-650 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">SOOP 방송국</span>
+                                <input type="text" id="edit-profile-soop" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-655 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">유튜브 메인</span>
+                                <input type="text" id="edit-profile-youtube" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-655 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">종겜 유튜브</span>
+                                <input type="text" id="edit-profile-cafe" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="border-dashed border-[#ffdcd1] dark:border-[#382620]">
+                    
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-base font-bold text-gray-950 dark:text-white"><i class="fa-regular fa-clock text-brand-dark"></i> 기념일 및 디데이 설정</h4>
+                            <button type="button" onclick="addEditDdayRow()" class="text-xs bg-brand/25 text-brand-deep dark:text-brand font-black px-3 py-1.5 rounded-xl hover:bg-brand/40 transition-colors">
+                                + 새 기념일 추가
+                            </button>
+                        </div>
+                        <div id="edit-dday-list" class="space-y-2.5">
+                            <!-- JS Dynamic rows -->
+                        </div>
+                    </div>
+                    <hr class="border-dashed border-[#ffdcd1] dark:border-[#382620]">
+
+                    <div>
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-3"><i class="fa-regular fa-calendar-check text-brand-dark"></i> 방송 정보 설정</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-650 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">방송 시간</span>
+                                <input type="text" id="edit-profile-time" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-655 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">콘텐츠</span>
+                                <input type="text" id="edit-profile-content" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-gray-655 dark:text-gray-400 w-20 whitespace-nowrap flex-shrink-0">주요 게임</span>
+                                <input type="text" id="edit-profile-game" class="flex-grow bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-2.5 outline-none font-semibold focus:border-brand">
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="border-dashed border-[#ffdcd1] dark:border-[#382620]">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-3"><i class="fa-solid fa-heart text-brand-dark"></i> 취향 목록 설정 (쉼표 구분)</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">좋아하는 것들</label>
+                                <input type="text" id="edit-profile-likes" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-3 outline-none font-semibold focus:border-brand">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">싫어하는 것들</label>
+                                <input type="text" id="edit-profile-dislikes" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-xl p-3 outline-none font-semibold focus:border-brand">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-[#faf7f4] dark:bg-[#181514] flex justify-end gap-2.5">
+                    <button onclick="closeProfileEditModal()" class="px-5 py-2.5 rounded-2xl bg-gray-200 dark:bg-gray-850 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-300 dark:hover:bg-gray-750 transition-colors">취소</button>
+                    <button onclick="saveProfileChanges()" class="bg-brand text-white px-6 py-2.5 rounded-2xl font-black shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0">저장하기</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Visual Toast Notification -->
+    <div id="toast-message" class="fixed bottom-6 right-6 z-[150] bg-brand-dark text-white font-bold text-sm py-3 px-5 rounded-xl shadow-lg transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+        <span id="toast-text">변경 사항이 반영되었습니다! 🍒</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-brand-light dark:bg-[#120e0d] text-[#5c544d] dark:text-[#a09489] py-8 text-center mt-auto border-t-4 border-dashed border-[#ffdcd1] dark:border-[#382620]">
+        <div class="max-w-4xl mx-auto px-4">
+            <p class="text-base font-black font-cute text-brand-dark dark:text-brand tracking-wide mb-1 flex items-center justify-center gap-1.5"><span class="text-base">🍒</span> 방우리 공식 프로필 스테이션</p>
+            <p class="text-xs text-gray-550 dark:text-gray-450 mt-1">© 2026 방우리. All rights reserved.</p>
+            <p class="text-xs text-emerald-600 dark:text-emerald-400 mt-1.5 font-bold font-cute">made by. 연주아🍀</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Engines -->
+    <script>
+        // ==========================================
+        // 🚨 파이어베이스 연동 설정 🚨 
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5s5HIUlfcV8ksiEsagpZWqOtbXg3zX_Q",
+            authDomain: "zooa-profile.firebaseapp.com",
+            projectId: "zooa-profile",
+            storageBucket: "zooa-profile.firebasestorage.app",
+            messagingSenderId: "575474141821",
+            appId: "1:575474141821:web:d1d863dd1d02ea1e8f7f14"
+        };
+
+        // 파이어베이스 초기화 함수
+        let db = null;
+        function initFirebase() {
+            if (typeof firebase !== 'undefined') {
+                if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "") {
+                    try {
+                        firebase.initializeApp(firebaseConfig);
+                        db = firebase.firestore();
+                        console.log("Firebase 연동 성공!");
+                        return true;
+                    } catch (error) {
+                        console.error("Firebase 초기화 에러:", error);
+                    }
+                }
+            } else {
+                console.warn("Firebase SDK 로딩 대기 중...");
+            }
+            return false;
+        }
+
+        // ==========================================
+        // 기본 제공 데이터
+        // ==========================================
+        const defaultUpboData = [
+            { id: 'uri_fan1', nickname: '체리체리봉봉', items: [{ name: '모닝콜 녹음 🍒', count: 1 }, { name: '원하는 게임 플레이권 🎮', count: 1 }, { name: '손글씨 편지 📝', count: 1 }] },
+            { id: 'uri_fan2', nickname: '우리바라기', items: [{ name: '움짤 방셀 💫', count: 1 }] },
+            { id: 'uri_fan3', nickname: '맹이대장', items: [{ name: '하단 배너 광고권 📣', count: 1 }] }
+        ];
+        
+        const defaultNoticeData = [
+            { type: '필독', date: '2026.07.19', content: '오늘 6시 30분 뱅온 예정입니다! 맛있는 거 먹고 이따 봐요 🍒', typeColor: 'red', link: '' },
+            { type: '안내', date: '2026.07.15', content: '종합 게임 유튜브 채널 구독 & 알림설정 잊지마세요! 🎮', typeColor: 'blue', link: 'https://www.youtube.com/@bangurihorror' },
+            { type: '일반', date: '2026.07.10', content: '팬닉 공모 결과, 버찌단 🍒과 맹_ 으로 결정 완료!', typeColor: 'gray', link: '' }
+        ];
+
+        const defaultScheduleData = [
+            { day: '월', content: '저챗 소통 및 종합 스팀 게임 🎮', color: 'gray', isRest: false },
+            { day: '화', content: '스토리 인디 공포 게임 맛집 탐방 👻', color: 'gray', isRest: false },
+            { day: '수', content: '정기 휴방일 💤 충전하고 만나요!', color: 'green', isRest: true },
+            { day: '목', content: '배틀그라운드 시청자 참여 🔫', color: 'gray', isRest: false },
+            { day: '금', content: '최신 신작 게임 스피드런 도전 ✨', color: 'gray', isRest: false },
+            { day: '토', content: '노래방 & 종합 게임 합방 🎤', color: 'gray', isRest: false },
+            { day: '일', content: '주간 정산 & 소통 라디오 🍒', color: 'gray', isRest: false }
+        ];
+        
+        const defaultProfileData = {
+            bannerUrl: "https://placehold.co/1200x400/ffe4e6/db2777?text=🍒+Uri+Station",
+            introText: `안녕하세요! 언제나 통통 튀고 러블리한 종합 버추얼 스트리머 방우리입니다 🍒\n때로는 귀엽고 깔끔하지만, 다양한 종합 게임을 맛있게 보여드려요!\n두 가지 유튜브 채널을 운영하고 있으니 메인 채널과 종합게임 서브 채널 모두 많은 사랑 부탁드립니다.`,
+            tags: ["반전매력", "버찌단", "귀염깔끔"],
+            broadcast: { time: "주 6일 · 주로 저녁 시간대 뱅온 (정기 휴방 수요일)", content: "저챗 소통 · 종합게임 · 시참 콘텐츠", game: "배그 · 각종 스팀 게임 · 각종 인디게임" },
+            likes: ["버찌단 (우리 팬들 🍒)", "맛있는 간식 🍊", "새로운 게임 도전"],
+            dislikes: ["깜짝 놀라는 뇌절", "갑작스러운 스포일러", "비매너 채팅"],
+            ddays: [
+                { title: "🎂 생일", type: "birthday", date: "09-13" },
+                { title: "🎬 첫 방송 시작일", type: "anniversary", date: "2024-07-05" }
+            ],
+            socials: {
+                soop: "https://www.sooplive.com/station/lsh8071",
+                youtube: "https://www.youtube.com/@Bang_Uri",
+                cafe: "https://www.youtube.com/@bangurihorror"
+            }
+        };
+
+        // 전역 상태 변수
+        let globalUpboData = [];
+        let globalNoticeData = [];
+        let globalScheduleData = [];
+        let globalProfileData = {};
+        
+        let isAdminMode = false;
+        let currentEditingUserId = null;
+        let deleteConfirmState = false; // 삭제 버퍼 상태 체크
+
+        // 로컬 스토리지 안전 유틸
+        function safeGetStorage(key, defaultValue) {
+            try { 
+                const item = window.localStorage.getItem(key); 
+                return item ? JSON.parse(item) : defaultValue; 
+            } catch (e) { 
+                return defaultValue; 
+            }
+        }
+        function safeSetStorage(key, value) {
+            try { 
+                window.localStorage.setItem(key, JSON.stringify(value)); 
+            } catch (e) {}
+        }
+
+        // 파이어베이스 데이터 로드
+        async function fetchSiteData() {
+            const loadingInd = document.getElementById('loading-indicator');
+            if (!db) {
+                initFirebase();
+            }
+
+            if (db) {
+                if (loadingInd) loadingInd.classList.remove('hidden');
+                try {
+                    const docRef = db.collection('uriProfile').doc('siteData');
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        const data = doc.data();
+                        globalUpboData = data.upbo || defaultUpboData;
+                        globalNoticeData = data.notice || defaultNoticeData;
+                        globalScheduleData = data.schedule || defaultScheduleData;
+                        globalProfileData = data.profile || defaultProfileData;
+                        
+                        if (globalProfileData && (!globalProfileData.ddays || globalProfileData.ddays.length === 0)) {
+                            globalProfileData.ddays = JSON.parse(JSON.stringify(defaultProfileData.ddays));
+                        }
+                        if (globalProfileData && !globalProfileData.socials) {
+                            globalProfileData.socials = JSON.parse(JSON.stringify(defaultProfileData.socials));
+                        }
+                    } else {
+                        await docRef.set({
+                            upbo: defaultUpboData, 
+                            notice: defaultNoticeData, 
+                            schedule: defaultScheduleData, 
+                            profile: defaultProfileData
+                        });
+                        globalUpboData = defaultUpboData; 
+                        globalNoticeData = defaultNoticeData; 
+                        globalScheduleData = defaultScheduleData; 
+                        globalProfileData = defaultProfileData;
+                    }
+                } catch (error) {
+                    console.error("데이터 로딩 실패:", error);
+                    fallbackToLocal();
+                }
+                if (loadingInd) loadingInd.classList.add('hidden');
+            } else {
+                fallbackToLocal();
+            }
+        }
+
+        function fallbackToLocal() {
+            globalUpboData = safeGetStorage('bangUriUpboData', defaultUpboData);
+            globalNoticeData = safeGetStorage('bangUriNoticeData', defaultNoticeData);
+            globalScheduleData = safeGetStorage('bangUriScheduleData', defaultScheduleData);
+            globalProfileData = safeGetStorage('bangUriProfileData', defaultProfileData);
+            
+            if (globalProfileData && (!globalProfileData.ddays || globalProfileData.ddays.length === 0)) {
+                globalProfileData.ddays = JSON.parse(JSON.stringify(defaultProfileData.ddays));
+            }
+            if (globalProfileData && !globalProfileData.socials) {
+                globalProfileData.socials = JSON.parse(JSON.stringify(defaultProfileData.socials));
+            }
+        }
+
+        // 파이어베이스 업로드
+        async function updateFirestore(key, data) {
+            if (db) {
+                try { 
+                    await db.collection('uriProfile').doc('siteData').update({ [key]: data }); 
+                } catch (error) { 
+                    console.error("데이터 저장 실패:", error); 
+                }
+            } else {
+                safeSetStorage(`bangUri${key.charAt(0).toUpperCase() + key.slice(1)}Data`, data);
+            }
+        }
+
+        // DOM 로드 시점 핸들링
+        document.addEventListener('DOMContentLoaded', async () => {
+            generateBgLeaves();
+
+            const themeToggleBtns = [document.getElementById('theme-toggle'), document.getElementById('mobile-theme-toggle')];
+            const html = document.documentElement;
+            let savedTheme = 'light';
+            try { savedTheme = window.localStorage.getItem('theme'); } catch(e) {}
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                html.classList.add('dark'); updateIcons(true);
+            } else {
+                html.classList.remove('dark'); updateIcons(false);
+            }
+            themeToggleBtns.forEach(btn => {
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        html.classList.toggle('dark');
+                        const isDark = html.classList.contains('dark');
+                        try { window.localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
+                        updateIcons(isDark);
+                    });
+                }
+            });
+            function updateIcons(isDark) {
+                themeToggleBtns.forEach(btn => {
+                    if (btn) {
+                        const icon = btn.querySelector('i');
+                        if (icon) {
+                            if (isDark) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } 
+                            else { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+                        }
+                    }
+                });
+            }
+
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            if (mobileBtn) {
+                mobileBtn.addEventListener('click', () => {
+                    document.getElementById('mobile-menu').classList.toggle('hidden');
+                });
+            }
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => document.getElementById('mobile-menu').classList.add('hidden'));
+            });
+
+            const today = new Date();
+            const dateSpan = document.getElementById('upbo-date');
+            if (dateSpan) {
+                dateSpan.innerText = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            }
+
+            const searchInput = document.getElementById('upbo-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const keyword = e.target.value.toLowerCase();
+                    const filtered = globalUpboData.filter(user => user.nickname.toLowerCase().includes(keyword) || user.id.toLowerCase().includes(keyword));
+                    renderUpbo(filtered);
+                });
+            }
+
+            initFirebase();
+            await fetchSiteData();
+            
+            renderProfile();
+            renderUpbo(globalUpboData);
+            renderNotice();
+            renderSchedule();
+        });
+
+        // 배경 파티클 생성기 (체리, 오렌지, 벚꽃, 별 등 방우리님 메인 테마)
+        function generateBgLeaves() {
+            const container = document.getElementById('leaf-bg-effects');
+            if (!container) return;
+            const leafIcons = ['🍒', '🌸', '🍊', '✨', '🎈'];
+            
+            setInterval(() => {
+                const leaf = document.createElement('div');
+                leaf.className = 'leaf-particle text-sm select-none';
+                leaf.style.left = Math.random() * 100 + 'vw';
+                leaf.style.top = '-20px';
+                leaf.style.fontSize = Math.random() * (26 - 14) + 14 + 'px'; 
+                leaf.style.animationDuration = Math.random() * (10 - 5) + 5 + 's'; 
+                leaf.style.opacity = Math.random() * 0.5 + 0.4; 
+                leaf.innerText = leafIcons[Math.floor(Math.random() * leafIcons.length)];
+                
+                container.appendChild(leaf);
+                setTimeout(() => { leaf.remove(); }, 10000);
+            }, 500);
+        }
+
+        // 토스트 출력 유틸
+        function showToast(message) {
+            const toast = document.getElementById('toast-message');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+            
+            toastText.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // SOOP 방송국 URL에서 아이디 파싱하기
+        function getSoopId(url) {
+            if (!url) return 'lsh8071';
+            try {
+                const cleaned = url.trim();
+                const parts = cleaned.split('/');
+                let lastPart = parts[parts.length - 1];
+                if (!lastPart && parts.length > 1) {
+                    lastPart = parts[parts.length - 2];
+                }
+                return lastPart || 'lsh8071';
+            } catch (e) {
+                return 'lsh8071';
+            }
+        }
+
+        // 디데이 연산식
+        function calculateDDayString(type, dateStr) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            if (type === 'birthday') {
+                const cleaned = dateStr.replace(/[^0-9]/g, '-');
+                const parts = cleaned.split('-');
+                if (parts.length < 2) return "날짜 오류";
+                const month = parseInt(parts[0], 10) - 1;
+                const day = parseInt(parts[1], 10);
+                
+                let targetYear = today.getFullYear();
+                let targetDate = new Date(targetYear, month, day);
+                if (targetDate < today) {
+                    targetDate.setFullYear(targetYear + 1);
+                }
+                
+                const diffTime = targetDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays === 0 || (today.getMonth() === month && today.getDate() === day)) {
+                    return '<span class="text-brand-dark dark:text-brand font-black animate-bounce block text-base font-cute">오늘 생일! 🎉</span>';
+                }
+                return `<span class="text-brand-dark dark:text-brand font-black text-xl font-cute">D-${diffDays}</span>`;
+            } else if (type === 'anniversary') {
+                const cleaned = dateStr.replace(/[^0-9]/g, '-');
+                const parts = cleaned.split('-').filter(p => p !== '');
+                if (parts.length < 3) return "날짜 오류";
+                const targetDate = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+                
+                const diffTime = today - targetDate;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                if (diffDays <= 0) return `<span class="text-gray-500 text-sm">D-Day 대기</span>`;
+                return `<span class="text-brand-orange dark:text-orange-400 font-black text-xl font-cute">${diffDays}일째</span>`;
+            } else {
+                const cleaned = dateStr.replace(/[^0-9]/g, '-');
+                const parts = cleaned.split('-').filter(p => p !== '');
+                if (parts.length < 3) return "날짜 오류";
+                const targetDate = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+                targetDate.setHours(0,0,0,0);
+                
+                const diffTime = targetDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) {
+                    return '<span class="text-red-500 font-bold animate-pulse text-base font-cute">오늘! 🔥</span>';
+                } else if (diffDays > 0) {
+                    return `<span class="text-rose-500 font-black text-xl font-cute">D-${diffDays}</span>`;
+                } else {
+                    return `<span class="text-gray-400 font-medium text-xs">종료 (D+${Math.abs(diffDays)})</span>`;
+                }
+            }
+        }
+
+        // 링크 변환기
+        function linkify(text) {
+            if (!text) return '';
+            const urlPattern = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlPattern, function(url) {
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-brand-dark dark:text-brand hover:underline font-black inline-flex items-center gap-1 bg-brand-light dark:bg-brand-deep/30 px-3 py-1 rounded-full transition-all text-xs" onclick="event.stopPropagation();">바로가기 <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>`;
+            });
+        }
+
+        // 프로필 정보 그리기
+        function renderProfile() {
+            const bannerEl = document.getElementById('profile-banner-img');
+            if (bannerEl) {
+                bannerEl.src = globalProfileData.bannerUrl || "https://placehold.co/1200x400/ffe4e6/db2777?text=🍒+Uri+Station";
+            }
+
+            const introEl = document.getElementById('profile-intro-text');
+            if (introEl) introEl.textContent = globalProfileData.introText;
+            
+            const tagsContainer = document.getElementById('profile-tags-container');
+            if (tagsContainer) {
+                tagsContainer.innerHTML = globalProfileData.tags.map(tag => `<span class="px-3.5 py-1.5 bg-[#fcfaf8] dark:bg-[#25201d] text-gray-655 dark:text-gray-400 rounded-2xl text-xs font-bold border border-[#ffdcd1] dark:border-[#382620] cursor-default squishy">#${tag.trim()}</span>`).join('');
+            }
+            
+            const ddayContainer = document.getElementById('dday-container');
+            if (ddayContainer) {
+                ddayContainer.innerHTML = '';
+                const ddays = globalProfileData.ddays || defaultProfileData.ddays;
+                if (ddays.length === 0) {
+                    ddayContainer.innerHTML = `<div class="text-center text-gray-400 text-sm py-8">기념일이 존재하지 않습니다.</div>`;
+                } else {
+                    ddays.forEach(dday => {
+                        const ddayResult = calculateDDayString(dday.type, dday.date);
+                        ddayContainer.innerHTML += `
+                            <div class="flex items-center justify-between p-3.5 bg-[#fcfaf8] dark:bg-[#1e1715] rounded-2xl border-2 border-[#ffdcd1] dark:border-[#382620] hover:scale-[1.02] transition-transform duration-300">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200">${dday.title}</span>
+                                    <span class="text-xs text-gray-400 mt-0.5">${dday.date}</span>
+                                </div>
+                                <div class="text-right">${ddayResult}</div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            const timeEl = document.getElementById('profile-broadcast-time');
+            if (timeEl) timeEl.innerText = globalProfileData.broadcast.time;
+            const contentEl = document.getElementById('profile-broadcast-content');
+            if (contentEl) contentEl.innerText = globalProfileData.broadcast.content;
+            const gameEl = document.getElementById('profile-broadcast-game');
+            if (gameEl) gameEl.innerText = globalProfileData.broadcast.game;
+            const likesContainer = document.getElementById('profile-likes-container');
+            if (likesContainer) {
+                likesContainer.innerHTML = globalProfileData.likes.map(like => `<span class="px-3.5 py-2 bg-brand-light/60 dark:bg-brand-deep/30 text-brand-dark dark:text-brand rounded-2xl text-xs font-bold border border-brand/30 hover:-rotate-2 transition-transform duration-300 cursor-default">${like.trim()}</span>`).join('');
+            }
+            const dislikesContainer = document.getElementById('profile-dislikes-container');
+            if (dislikesContainer) {
+                dislikesContainer.innerHTML = globalProfileData.dislikes.map(dislike => `<span class="px-3.5 py-2 bg-orange-50 dark:bg-orange-950/20 text-brand-orange dark:text-orange-400 rounded-2xl text-xs font-bold border border-orange-100 dark:border-orange-950/50 hover:rotate-2 transition-transform duration-300 cursor-default">${dislike.trim()}</span>`).join('');
+            }
+
+            const socials = globalProfileData.socials || defaultProfileData.socials || {};
+            const soopEl = document.getElementById('profile-soop-link');
+            const youtubeEl = document.getElementById('profile-youtube-link');
+            const cafeEl = document.getElementById('profile-horror-link');
+            
+            if (soopEl) soopEl.href = socials.soop || "https://www.sooplive.com/station/lsh8071";
+            if (youtubeEl) youtubeEl.href = socials.youtube || "https://www.youtube.com/@Bang_Uri";
+            if (cafeEl) cafeEl.href = socials.cafe || "https://www.youtube.com/@bangurihorror";
+
+            // 🌟 [핵심 요구사항] SOOP 방송국 ID와 프로필 아바타 & 파비콘 실시간 연동
+            const soopId = getSoopId(socials.soop);
+            const dynamicAvatarUrl = `https://stimg.afreecatv.com/LOGO/${soopId.substring(0, 2)}/${soopId}/${soopId}.jpg`;
+            
+            const avatarDisplay = document.getElementById('avatar-display');
+            if (avatarDisplay) {
+                avatarDisplay.src = dynamicAvatarUrl;
+            }
+            const faviconLink = document.getElementById('favicon-link');
+            if (faviconLink) {
+                faviconLink.href = dynamicAvatarUrl;
+            }
+        }
+
+        // 공지 렌더링
+        function renderNotice() {
+            const list = document.getElementById('notice-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (globalNoticeData.length === 0) { list.innerHTML = '<li class="text-center text-gray-500 py-4">등록된 공지사항이 없습니다.</li>'; return; }
+
+            globalNoticeData.forEach(notice => {
+                let badgeClass = '', bgClass = 'p-4 rounded-2xl hover:bg-brand-light/30 dark:hover:bg-[#2c211e] border-2 border-dashed border-[#ffdcd1] dark:border-[#382620] transition-all duration-300';
+                if (notice.typeColor === 'red') { badgeClass = 'bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300'; bgClass = 'bg-brand-light/40 dark:bg-brand-deep/20 p-4 rounded-2xl border-2 border-brand/40'; } 
+                else if (notice.typeColor === 'blue') { badgeClass = 'bg-sky-100 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300'; } 
+                else { badgeClass = 'bg-gray-100 text-gray-650 dark:bg-[#3d2e2a] dark:text-gray-300'; }
+
+                let linkHtml = '';
+                if (notice.link && notice.link.trim() !== '') {
+                    linkHtml = `
+                        <div class="mt-2.5">
+                            <a href="${notice.link}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:bg-brand-dark px-3.5 py-2 rounded-xl shadow-sm transition-all hover:scale-[1.03]">
+                                바로가기 <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+
+                list.innerHTML += `
+                    <li class="${bgClass}">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="${badgeClass} text-xs font-bold px-2.5 py-1 rounded-xl">${notice.type}</span>
+                            <span class="text-xs text-gray-400">${notice.date}</span>
+                        </div>
+                        <p class="text-sm text-[#4c443e] dark:text-[#ebdcd0] ${notice.typeColor === 'red' ? 'font-bold' : 'font-medium'}">${linkify(notice.content)}</p>
+                        ${linkHtml}
+                    </li>
+                `;
+            });
+        }
+
+        // 일정표 렌더링
+        function renderSchedule() {
+            const list = document.getElementById('schedule-list');
+            if (!list) return;
+            list.innerHTML = '';
+            const colorMap = {
+                gray: { text: 'text-[#4c443e] dark:text-gray-300', dayText: 'text-gray-650 dark:text-gray-400 bg-gray-100 dark:bg-[#2b211e]' },
+                green: { text: 'text-brand-dark dark:text-brand font-bold', dayText: 'text-white bg-brand' }
+            };
+
+            globalScheduleData.forEach(schedule => {
+                const colors = colorMap[schedule.color] || colorMap.gray;
+                const bgClass = schedule.isRest ? 'bg-pink-50/60 dark:bg-pink-950/20 border-2 border-pink-100 dark:border-pink-900' : 'hover:bg-[#fcfaf8] dark:hover:bg-[#2c211e] border-2 border-transparent';
+                list.innerHTML += `
+                    <div class="flex items-center justify-between p-2.5 rounded-2xl ${bgClass} transition-all duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 flex items-center justify-center rounded-xl font-black text-sm ${colors.dayText} font-cute shadow-sm">${schedule.day}</div>
+                            <div class="text-sm font-semibold ${colors.text}">${schedule.content}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 아바타 주소 자동 계산
+        function getAvatarUrl(user) {
+            if (user.id && user.id.trim() !== '') {
+                const prefix = user.id.substring(0, 2);
+                return `https://stimg.afreecatv.com/LOGO/${prefix}/${user.id}/${user.id}.jpg`;
+            }
+            const safeName = user.nickname.length >= 2 ? user.nickname.substring(0,2) : user.nickname;
+            return `https://placehold.co/100x100/fcd34d/78350f?text=${encodeURIComponent(safeName)}`;
+        }
+
+        // 업보 보드 렌더링
+        function renderUpbo(data) {
+            const grid = document.getElementById('upbo-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            if (data.length === 0) { grid.innerHTML = '<div class="col-span-full py-10 text-center text-gray-500">검색 결과가 존재하지 않습니다.</div>'; return; }
+
+            data.forEach(user => {
+                const totalItems = user.items.reduce((sum, item) => sum + item.count, 0);
+                if (totalItems === 0 && !isAdminMode) return;
+                
+                const avatarUrl = getAvatarUrl(user);
+                const safeName = user.nickname.length >= 2 ? user.nickname.substring(0,2) : user.nickname;
+                const card = document.createElement('div');
+                card.className = 'bg-[#faf7f4] dark:bg-[#25201d] border-2 border-[#ffdcd1] dark:border-[#382620] rounded-3xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-brand-light dark:hover:bg-[#2c211e] transition-all shadow-sm relative group squishy';
+                card.onclick = () => { if (isAdminMode) openUpboEditModal(user, avatarUrl); else openUpboModal(user, avatarUrl); };
+                const adminBadge = isAdminMode ? `<div class="absolute top-3 right-3 text-gray-400 group-hover:text-brand-dark transition-colors"><i class="fa-solid fa-pen-to-square"></i></div>` : '';
+
+                card.innerHTML = `
+                    ${adminBadge}
+                    <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${encodeURIComponent(safeName)}'" alt="${user.nickname}" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-700">
+                    <div class="text-gray-900 dark:text-gray-100 font-bold text-sm mb-3 truncate w-full text-center">${user.nickname}</div>
+                    <div class="bg-brand text-white font-black text-xs px-3.5 py-1.5 rounded-full shadow-sm">업보 ${totalItems}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 업보 조회 일반
+        function openUpboModal(user, avatarUrl) {
+            let modal = document.getElementById('upbo-modal');
+            if (!modal) {
+                modal = document.createElement('div'); modal.id = 'upbo-modal'; modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300';
+                document.body.appendChild(modal);
+            }
+            const itemsHtml = user.items.length > 0 ? user.items.map(item => `
+                <div class="flex justify-between items-center bg-[#faf7f4] dark:bg-[#1e1715] border-2 border-[#ffdcd1] dark:border-[#382620] rounded-2xl p-4 mb-2 font-bold">
+                    <span class="text-gray-800 dark:text-gray-200 font-bold text-sm">${item.name}</span>
+                    <span class="text-brand-dark dark:text-brand font-black bg-brand-light dark:bg-brand-deep/30 px-3 py-1 rounded-xl">×${item.count}</span>
+                </div>
+            `).join('') : `<div class="text-center text-gray-500 py-6">지정된 업보 내역이 존재하지 않습니다.</div>`;
+
+            modal.innerHTML = `
+                <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand">
+                    <div class="p-5 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620]">
+                        <div class="flex items-center gap-3">
+                            <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${user.nickname.substring(0,2)}'" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover">
+                            <div>
+                                <div class="text-gray-900 dark:text-white font-black text-sm">${user.nickname}</div>
+                                <div class="text-gray-400 text-xs">(${user.id})</div>
+                            </div>
+                        </div>
+                        <button onclick="closeUpboModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 max-h-60 overflow-y-auto">${itemsHtml}</div>
+                </div>
+            `;
+            requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeUpboModal(); });
+        }
+
+        function closeUpboModal() {
+            const modal = document.getElementById('upbo-modal');
+            if (modal) { modal.classList.add('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95'); }
+        }
+
+        // 관리자 모드 개방 및 닫기
+        function openAdminLoginModal() {
+            if (isAdminMode) {
+                isAdminMode = false;
+                document.getElementById('admin-add-user-btn').classList.add('hidden'); document.getElementById('admin-add-user-btn').classList.remove('flex');
+                document.getElementById('admin-notice-edit-btn').classList.add('hidden'); document.getElementById('admin-schedule-edit-btn').classList.add('hidden'); document.getElementById('admin-profile-edit-btn').classList.add('hidden');
+                document.getElementById('upbo-search').dispatchEvent(new Event('input')); 
+                showToast("관리자 모드가 해제되었습니다. 🍒");
+                return;
+            }
+            const modal = document.getElementById('admin-login-modal');
+            requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
+            document.getElementById('admin-pin').value = ''; document.getElementById('admin-pin').focus();
+        }
+
+        function closeAdminLoginModal() {
+            const modal = document.getElementById('admin-login-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95');
+        }
+
+        // 비밀번호 체크
+        function checkAdminPin() {
+            const pin = document.getElementById('admin-pin').value;
+            // 지정된 비밀번호 ahsh8071 세팅
+            if (pin === 'ahsh8071') { 
+                isAdminMode = true; closeAdminLoginModal();
+                document.getElementById('admin-add-user-btn').classList.remove('hidden'); document.getElementById('admin-add-user-btn').classList.add('flex');
+                document.getElementById('admin-notice-edit-btn').classList.remove('hidden'); document.getElementById('admin-schedule-edit-btn').classList.remove('hidden'); document.getElementById('admin-profile-edit-btn').classList.remove('hidden');
+                document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+                showToast("매니저 모드로 로그인 되었습니다! 🍒");
+            } else {
+                const input = document.getElementById('admin-pin');
+                input.classList.add('border-red-500'); input.value = ''; input.placeholder = '비밀번호 불일치!';
+                setTimeout(() => { input.classList.remove('border-red-500'); input.placeholder = '비밀번호'; }, 2000);
+            }
+        }
+
+        function saveUpboData() { updateFirestore('upbo', globalUpboData); }
+
+        // 관리자 전용 편집 모달 개방
+        function openUpboEditModal(user, avatarUrl) {
+            currentEditingUserId = user.id; 
+            const modal = document.getElementById('upbo-edit-modal');
+            
+            document.getElementById('edit-modal-header').innerHTML = `
+                <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${user.nickname.substring(0,2)}'" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover">
+                <div>
+                    <div class="text-gray-900 dark:text-white font-black text-sm">
+                        ${user.nickname} 
+                        <span class="text-xs text-brand-dark font-bold bg-brand-light dark:bg-brand-deep/30 px-2 py-0.5 rounded-lg ml-1">수정 중</span>
+                    </div>
+                    <div class="text-gray-400 text-xs">(${user.id})</div>
+                </div>
+            `;
+            
+            const deleteUserBtn = document.getElementById('delete-user-confirm-btn');
+            if (deleteUserBtn) {
+                deleteUserBtn.classList.remove('hidden');
+                deleteUserBtn.classList.add('block');
+                deleteConfirmState = false; 
+                deleteUserBtn.innerHTML = `<i class="fa-solid fa-user-minus mr-1"></i>삭제`;
+                deleteUserBtn.className = "text-xs bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold px-3 py-1.5 rounded-xl hover:bg-rose-100 transition-all";
+                deleteUserBtn.onclick = () => handleDeleteUser(user.id);
+            }
+
+            renderEditItems();
+            requestAnimationFrame(() => { 
+                modal.classList.remove('opacity-0', 'pointer-events-none'); 
+                modal.querySelector('div').classList.remove('scale-95'); 
+                modal.querySelector('div').classList.add('scale-100'); 
+            });
+            document.getElementById('new-item-name').onkeypress = function(e) { if (e.key === 'Enter') addNewItem(); };
+        }
+
+        function closeUpboEditModal() {
+            const modal = document.getElementById('upbo-edit-modal'); 
+            modal.classList.add('opacity-0', 'pointer-events-none'); 
+            modal.querySelector('div').classList.remove('scale-100'); 
+            modal.querySelector('div').classList.add('scale-95'); 
+            currentEditingUserId = null;
+            
+            const deleteUserBtn = document.getElementById('delete-user-confirm-btn');
+            if (deleteUserBtn) {
+                deleteUserBtn.classList.add('hidden');
+                deleteUserBtn.classList.remove('block');
+            }
+        }
+
+        // 유저 정보 삭제 (안전장치 구조)
+        function handleDeleteUser(userId) {
+            const btn = document.getElementById('delete-user-confirm-btn');
+            if (!btn) return;
+
+            if (!deleteConfirmState) {
+                deleteConfirmState = true;
+                btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i>확실한가요?`;
+                btn.className = "text-xs bg-red-600 text-white font-bold px-3 py-1.5 rounded-xl hover:bg-red-700 transition-all animate-pulse";
+                
+                setTimeout(() => {
+                    if (deleteConfirmState && currentEditingUserId === userId) {
+                        btn.innerHTML = `<i class="fa-solid fa-user-minus mr-1"></i>삭제`;
+                        btn.className = "text-xs bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold px-3 py-1.5 rounded-xl hover:bg-rose-100 transition-all";
+                        deleteConfirmState = false;
+                    }
+                }, 3000);
+            } else {
+                globalUpboData = globalUpboData.filter(u => u.id !== userId);
+                saveUpboData();
+                closeUpboEditModal();
+                document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+                deleteConfirmState = false;
+                showToast("선택한 유저 정보가 완전히 제거되었습니다.");
+            }
+        }
+
+        // 업보 편집 아이템 리스트 렌더
+        function renderEditItems() {
+            const user = globalUpboData.find(u => u.id === currentEditingUserId); if (!user) return;
+            const body = document.getElementById('edit-modal-body');
+            if (user.items.length === 0) { body.innerHTML = `<div class="text-center text-gray-400 py-6 font-bold">보유한 업보가 없습니다. 아래에서 추가해주세요!</div>`; return; }
+            body.innerHTML = user.items.map((item, index) => `
+                <div class="flex justify-between items-center bg-[#faf7f4] dark:bg-[#1e1715] border-2 border-[#ffdcd1] dark:border-[#382620] rounded-2xl p-3.5 mb-2 font-bold">
+                    <span class="text-gray-800 dark:text-gray-200 font-bold text-sm sm:text-base">${item.name}</span>
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <button onclick="changeItemCount(${index}, -1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-750 text-gray-655 dark:text-gray-300 hover:bg-red-100 hover:text-red-500 transition-colors"><i class="fa-solid fa-minus text-xs"></i></button>
+                        <span class="font-black w-5 text-center text-gray-900 dark:text-white">${item.count}</span>
+                        <button onclick="changeItemCount(${index}, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-750 text-gray-655 dark:text-gray-300 hover:bg-brand-light hover:text-brand-dark transition-colors"><i class="fa-solid fa-plus text-xs"></i></button>
+                        <button onclick="deleteItem(${index})" class="ml-1 sm:ml-2 text-gray-400 hover:text-red-500 transition-colors p-2" title="항목 삭제"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function changeItemCount(index, delta) {
+            const user = globalUpboData.find(u => u.id === currentEditingUserId); if (!user) return;
+            user.items[index].count += delta; if (user.items[index].count <= 0) user.items[index].count = 0;
+            saveUpboData(); renderEditItems(); document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+        }
+
+        function deleteItem(index) {
+            const user = globalUpboData.find(u => u.id === currentEditingUserId); if (!user) return;
+            user.items.splice(index, 1); saveUpboData(); renderEditItems(); document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+        }
+
+        function addNewItem() {
+            const input = document.getElementById('new-item-name'); const name = input.value.trim(); if (!name) return;
+            let user = globalUpboData.find(u => u.id === currentEditingUserId); if (!user) return;
+            const existing = user.items.find(i => i.name === name);
+            if (existing) existing.count += 1; else user.items.push({ name: name, count: 1 });
+            input.value = ''; saveUpboData(); renderEditItems(); document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+        }
+
+        function openAddUserModal() {
+            const modal = document.getElementById('add-user-modal'); document.getElementById('new-user-id').value = ''; document.getElementById('new-user-nickname').value = '';
+            requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); }); document.getElementById('new-user-nickname').focus();
+        }
+        function closeAddUserModal() { const modal = document.getElementById('add-user-modal'); modal.classList.add('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95'); }
+
+        function submitNewUser() {
+            const idInput = document.getElementById('new-user-id').value.trim(); const nickInput = document.getElementById('new-user-nickname').value.trim();
+            if (!nickInput) {
+                const nickEl = document.getElementById('new-user-nickname'); nickEl.classList.add('border-red-500', 'placeholder-red-400'); nickEl.placeholder = '닉네임을 입력해 주세요!';
+                setTimeout(() => { nickEl.classList.remove('border-red-500', 'placeholder-red-400'); nickEl.placeholder = '닉네임 입력'; }, 2000); return;
+            }
+            globalUpboData.unshift({ id: idInput, nickname: nickInput, items: [] });
+            saveUpboData(); closeAddUserModal(); document.getElementById('upbo-search').dispatchEvent(new Event('input'));
+            showToast(`새 맹이 "${nickInput}"님이 리스트에 반영되었습니다.`);
+        }
+
+        // 공지 편집 처리
+        function openNoticeEditModal() {
+            const modal = document.getElementById('notice-edit-modal'); renderNoticeEditList();
+            requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
+            document.getElementById('new-notice-content').onkeypress = function(e) { if (e.key === 'Enter') addNewNotice(); };
+        }
+        function closeNoticeEditModal() { const modal = document.getElementById('notice-edit-modal'); modal.classList.add('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95'); }
+
+        function renderNoticeEditList() {
+            const list = document.getElementById('notice-edit-list'); list.innerHTML = '';
+            if (globalNoticeData.length === 0) { list.innerHTML = '<div class="text-center text-gray-500 py-4 font-bold">등록된 공지글이 없습니다.</div>'; return; }
+            globalNoticeData.forEach((notice, index) => {
+                let linkBadge = '';
+                if (notice.link && notice.link.trim() !== '') {
+                    linkBadge = `<span class="text-[10px] bg-brand/20 text-brand-dark dark:text-brand font-bold px-2 py-0.5 rounded border border-brand/20 truncate max-w-[120px]" title="${notice.link}"><i class="fa-solid fa-link mr-1"></i>링크</span>`;
+                }
+                list.innerHTML += `
+                    <div class="bg-[#faf7f4] dark:bg-[#1e1715] border-2 border-[#ffdcd1] dark:border-[#382620] p-3 rounded-2xl flex justify-between items-start gap-3 font-bold">
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-xs font-bold bg-brand-light text-brand-dark px-2 py-0.5 rounded-lg">${notice.type}</span>
+                                <span class="text-xs text-gray-400">${notice.date}</span>
+                                ${linkBadge}
+                            </div>
+                            <p class="text-sm text-gray-800 dark:text-gray-200 break-all">${linkify(notice.content)}</p>
+                        </div>
+                        <button onclick="deleteNotice(${index})" class="text-gray-400 hover:text-red-500 p-1 flex-shrink-0 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+            });
+        }
+        function addNewNotice() {
+            const type = document.getElementById('new-notice-type').value; 
+            const contentInput = document.getElementById('new-notice-content'); 
+            const linkInput = document.getElementById('new-notice-link');
+            const content = contentInput.value.trim();
+            let link = linkInput.value.trim();
+            
+            if (!content) return; 
+            
+            if (link && !/^https?:\/\//i.test(link)) {
+                link = 'https://' + link;
+            }
+            
+            let typeColor = 'gray'; 
+            if (type === '필독') typeColor = 'red'; 
+            if (type === '안내') typeColor = 'blue';
+            
+            const today = new Date(); 
+            const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+            
+            globalNoticeData.unshift({ 
+                type: type, 
+                date: dateStr, 
+                content: content, 
+                link: link, 
+                typeColor: typeColor 
+            });
+            
+            updateFirestore('notice', globalNoticeData); 
+            contentInput.value = ''; 
+            linkInput.value = '';
+            renderNoticeEditList(); 
+            renderNotice();
+            showToast("신규 공지글이 정식 공표되었습니다. 🍒");
+        }
+        function deleteNotice(index) { globalNoticeData.splice(index, 1); updateFirestore('notice', globalNoticeData); renderNoticeEditList(); renderNotice(); showToast("공지가 성공적으로 정리되었습니다."); }
+
+        // 일정 편집 모달
+        function openScheduleEditModal() {
+            const modal = document.getElementById('schedule-edit-modal'); renderScheduleEditList();
+            requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
+        }
+        function closeScheduleEditModal() { const modal = document.getElementById('schedule-edit-modal'); modal.classList.add('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95'); }
+        function renderScheduleEditList() {
+            const list = document.getElementById('schedule-edit-list'); list.innerHTML = '';
+            globalScheduleData.forEach((schedule, index) => {
+                list.innerHTML += `
+                    <div class="flex items-center gap-3 bg-[#faf7f4] dark:bg-[#1e1715] border-2 border-[#ffdcd1] dark:border-[#382620] p-2.5 rounded-2xl font-bold">
+                        <div class="w-8 text-center font-black text-gray-700 dark:text-gray-300 flex-shrink-0 font-cute">${schedule.day}</div>
+                        <input type="text" id="schedule-input-${index}" value="${schedule.content}" class="flex-grow bg-white dark:bg-[#25211e] border-2 border-[#ffdcd1] dark:border-[#382620] text-[#4c443e] dark:text-gray-200 text-sm rounded-xl p-2 outline-none font-semibold focus:border-brand">
+                        <label class="flex items-center gap-1 text-xs font-bold text-gray-500 cursor-pointer flex-shrink-0">
+                            <input type="checkbox" id="schedule-rest-${index}" ${schedule.isRest ? 'checked' : ''} class="w-4 h-4 text-brand-dark rounded focus:ring-brand-dark">휴방
+                        </label>
+                    </div>
+                `;
+            });
+        }
+        function saveScheduleChanges() {
+            globalScheduleData.forEach((schedule, index) => {
+                const content = document.getElementById(`schedule-input-${index}`).value; const isRest = document.getElementById(`schedule-rest-${index}`).checked;
+                schedule.content = content; schedule.isRest = isRest;
+                if (isRest) { 
+                    schedule.color = 'green'; 
+                } else { 
+                    schedule.color = 'gray'; 
+                }
+            });
+            updateFirestore('schedule', globalScheduleData); renderSchedule(); closeScheduleEditModal(); showToast("주간 일정 배정이 안전 저장되었습니다.");
+        }
+
+        // 메인 프로필 설정 편집
+        function openProfileEditModal() {
+            const modal = document.getElementById('profile-edit-modal');
+            
+            document.getElementById('edit-profile-banner').value = globalProfileData.bannerUrl || "";
+            document.getElementById('edit-profile-intro').value = globalProfileData.introText || ""; 
+            document.getElementById('edit-profile-tags').value = (globalProfileData.tags || []).join(', ');
+            document.getElementById('edit-profile-time').value = (globalProfileData.broadcast || {}).time || ""; 
+            document.getElementById('edit-profile-content').value = (globalProfileData.broadcast || {}).content || ""; 
+            document.getElementById('edit-profile-game').value = (globalProfileData.broadcast || {}).game || "";
+            document.getElementById('edit-profile-likes').value = (globalProfileData.likes || []).join(', '); 
+            document.getElementById('edit-profile-dislikes').value = (globalProfileData.dislikes || []).join(', ');
+            
+            const socials = globalProfileData.socials || defaultProfileData.socials || {};
+            document.getElementById('edit-profile-soop').value = socials.soop || "";
+            document.getElementById('edit-profile-youtube').value = socials.youtube || "";
+            document.getElementById('edit-profile-cafe').value = socials.cafe || "";
+
+            if (!globalProfileData.ddays || globalProfileData.ddays.length === 0) {
+                globalProfileData.ddays = JSON.parse(JSON.stringify(defaultProfileData.ddays));
+            }
+
+            renderEditDdays();
+
+            requestAnimationFrame(() => { 
+                modal.classList.remove('opacity-0', 'pointer-events-none'); 
+                modal.querySelector('div').classList.remove('scale-95'); 
+                modal.querySelector('div').classList.add('scale-100'); 
+            });
+        }
+
+        function closeProfileEditModal() { 
+            const modal = document.getElementById('profile-edit-modal'); 
+            modal.classList.add('opacity-0', 'pointer-events-none'); 
+            modal.querySelector('div').classList.remove('scale-100'); 
+            modal.querySelector('div').classList.add('scale-95'); 
+        }
+
+        function renderEditDdays() {
+            const list = document.getElementById('edit-dday-list');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const ddays = globalProfileData.ddays || defaultProfileData.ddays;
+            ddays.forEach((dday, index) => {
+                list.innerHTML += `
+                    <div class="flex items-center gap-2 bg-[#faf7f4] dark:bg-[#181514] p-2 rounded-2xl border-2 border-[#ffdcd1] dark:border-[#382620] font-bold">
+                        <input type="text" id="edit-dday-title-${index}" value="${dday.title}" class="w-1/3 bg-white dark:bg-[#25211e] border border-gray-300 dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-gray-900 dark:text-gray-200 outline-none" placeholder="기념일명">
+                        <select id="edit-dday-type-${index}" class="w-1/4 bg-white dark:bg-[#25211e] border border-gray-300 dark:border-gray-700 rounded-xl p-2 text-xs font-bold text-gray-900 dark:text-gray-200 outline-none">
+                            <option value="birthday" ${dday.type === 'birthday' ? 'selected' : ''}>생일(매년)</option>
+                            <option value="anniversary" ${dday.type === 'anniversary' ? 'selected' : ''}>기념일(경과일)</option>
+                            <option value="dday" ${dday.type === 'dday' ? 'selected' : ''}>디데이(잔여일)</option>
+                        </select>
+                        <input type="text" id="edit-dday-date-${index}" value="${dday.date}" class="w-1/4 bg-white dark:bg-[#25211e] border border-gray-300 dark:border-gray-700 rounded-xl p-2 text-xs font-semibold text-gray-900 dark:text-gray-200 outline-none" placeholder="YYYY-MM-DD">
+                        <button type="button" onclick="deleteEditDdayRow(${index})" class="text-gray-400 hover:text-red-500 p-1 text-sm"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function addEditDdayRow() {
+            if (!globalProfileData.ddays) globalProfileData.ddays = [];
+            globalProfileData.ddays.push({ title: "새 기념일", type: "dday", date: "2026-09-13" });
+            renderEditDdays();
+        }
+
+        function deleteEditDdayRow(index) {
+            if (!globalProfileData.ddays) return;
+            globalProfileData.ddays.splice(index, 1);
+            renderEditDdays();
+        }
+
+        function saveProfileChanges() {
+            const parse = (str) => str.split(',').map(item => item.trim()).filter(item => item !== '');
+            globalProfileData.bannerUrl = document.getElementById('edit-profile-banner').value.trim();
+            globalProfileData.introText = document.getElementById('edit-profile-intro').value; 
+            globalProfileData.tags = parse(document.getElementById('edit-profile-tags').value);
+            
+            if (!globalProfileData.broadcast) globalProfileData.broadcast = {};
+            globalProfileData.broadcast.time = document.getElementById('edit-profile-time').value; 
+            globalProfileData.broadcast.content = document.getElementById('edit-profile-content').value; 
+            globalProfileData.broadcast.game = document.getElementById('edit-profile-game').value;
+            globalProfileData.likes = parse(document.getElementById('edit-profile-likes').value); 
+            globalProfileData.dislikes = parse(document.getElementById('edit-profile-dislikes').value);
+            
+            if (!globalProfileData.socials) globalProfileData.socials = {};
+            globalProfileData.socials.soop = document.getElementById('edit-profile-soop').value.trim();
+            globalProfileData.socials.youtube = document.getElementById('edit-profile-youtube').value.trim();
+            globalProfileData.socials.cafe = document.getElementById('edit-profile-cafe').value.trim();
+
+            const ddaysCount = (globalProfileData.ddays || []).length;
+            const savedDdays = [];
+            for (let i = 0; i < ddaysCount; i++) {
+                const titleEl = document.getElementById(`edit-dday-title-${i}`);
+                if (!titleEl) continue;
+                
+                const title = titleEl.value.trim();
+                const type = document.getElementById(`edit-dday-type-${i}`).value;
+                const date = document.getElementById(`edit-dday-date-${i}`).value.trim();
+                
+                if (title !== '' && date !== '') {
+                    savedDdays.push({ title, type, date });
+                }
+            }
+            globalProfileData.ddays = savedDdays;
+
+            updateFirestore('profile', globalProfileData); 
+            renderProfile(); 
+            closeProfileEditModal();
+            showToast("기본 프로필 패널 및 기념일 갱신이 완료되었습니다. 🍒");
+        }
+
+        // 전역 핸들러 연결
+        window.openProfileEditModal = openProfileEditModal;
+        window.closeProfileEditModal = closeProfileEditModal;
+        window.saveProfileChanges = saveProfileChanges;
+        window.openUpboEditModal = openUpboEditModal;
+        window.closeUpboEditModal = closeUpboEditModal;
+        window.openUpboModal = openUpboModal;
+        window.closeUpboModal = closeUpboModal;
+        window.openAdminLoginModal = openAdminLoginModal;
+        window.closeAdminLoginModal = closeAdminLoginModal;
+        window.checkAdminPin = checkAdminPin;
+        window.addNewItem = addNewItem;
+        window.changeItemCount = changeItemCount;
+        window.deleteItem = deleteItem;
+        window.openAddUserModal = openAddUserModal;
+        window.closeAddUserModal = closeAddUserModal;
+        window.submitNewUser = submitNewUser;
+        window.openNoticeEditModal = openNoticeEditModal;
+        window.closeNoticeEditModal = closeNoticeEditModal;
+        window.addNewNotice = addNewNotice;
+        window.deleteNotice = deleteNotice;
+        window.openScheduleEditModal = openScheduleEditModal;
+        window.closeScheduleEditModal = closeScheduleEditModal;
+        window.saveScheduleChanges = saveScheduleChanges;
+        window.addEditDdayRow = addEditDdayRow;
+        window.deleteEditDdayRow = deleteEditDdayRow;
+        window.handleDeleteUser = handleDeleteUser;
+    </script>
+</body>
+</html>

@@ -490,11 +490,30 @@
                     </button>
                 </div>
                 
-                <div class="p-5 flex-grow overflow-y-auto space-y-6">
+                <div class="p-5 flex-grow overflow-y-auto space-y-6 text-sm font-semibold">
+                    <!-- Banner Cover Setting with Drag-and-drop Image Area -->
                     <div>
-                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-2"><i class="fa-solid fa-image text-brand-dark"></i> 배너 이미지 URL</h4>
-                        <input type="text" id="edit-profile-banner" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl p-3 outline-none font-semibold focus:border-brand" placeholder="직접 이미지 인터넷 주소(URL)를 입력해주세요.">
+                        <h4 class="text-base font-bold text-gray-950 dark:text-white mb-2"><i class="fa-solid fa-image text-brand-dark mr-1"></i> 대표 아트 배너 설정</h4>
+                        <label class="block text-xs text-gray-500 mb-2 font-bold">배너 이미지 직접 파일 업로드 (고화질 최적 자동 압축 변환 지원)</label>
+                        <div id="banner-dropzone" class="border-2 border-dashed border-brand bg-[#fffcf9] dark:bg-[#181514] rounded-2xl p-4 text-center cursor-pointer hover:bg-brand-light/20 hover:border-brand-dark transition-all relative flex flex-col items-center justify-center min-h-[120px]">
+                            <input type="file" id="edit-profile-banner-file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                            <div id="banner-upload-prompt" class="space-y-1">
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-brand"></i>
+                                <p class="text-sm text-gray-700 dark:text-gray-300 font-bold">여기로 이미지 파일을 끌어다 놓거나 클릭하세요.</p>
+                                <p class="text-[10px] text-gray-400 font-medium">JPG, PNG, WEBP (고해상도로 완벽 변환됩니다)</p>
+                            </div>
+                            <div id="banner-upload-preview" class="hidden w-full flex-col items-center gap-2">
+                                <img id="banner-preview-img" src="" class="h-24 w-auto rounded-lg object-cover border border-[#ffdcd1]">
+                                <button type="button" onclick="clearUploadedBanner()" class="text-xs bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400 px-2.5 py-1 rounded-lg hover:bg-red-100 transition-colors font-bold">
+                                    <i class="fa-solid fa-trash mr-1"></i> 파일 취소
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="edit-profile-banner">
                     </div>
+                    <hr class="border-dashed border-[#ffdcd1] dark:border-[#382620]">
+
+                    <!-- Intro Words and Hashtags -->
                     <div>
                         <h4 class="text-base font-bold text-gray-950 dark:text-white mb-2"><i class="fa-solid fa-seedling text-brand-dark"></i> 소개글</h4>
                         <textarea id="edit-profile-intro" rows="3" class="w-full bg-white dark:bg-[#181614] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 text-sm rounded-2xl p-3 outline-none resize-none mb-2 font-semibold focus:border-brand"></textarea>
@@ -678,6 +697,44 @@
         let currentEditingUserId = null;
         let deleteConfirmState = false; // 삭제 버퍼 상태 체크
 
+        // 직접 파일 업로드 및 Firestore 한도 대응 압축 엔진
+        let uploadedBannerBase64 = null;
+
+        function processHighResolutionImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 1200; // Optimal for Firestore and high quality display
+                        if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                                height = Math.round((height * maxDim) / width);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width * maxDim) / height);
+                                height = maxDim;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.82));
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+            });
+        }
+
         // 로컬 스토리지 안전 유틸
         function safeGetStorage(key, defaultValue) {
             try { 
@@ -834,7 +891,74 @@
             renderUpbo(globalUpboData);
             renderNotice();
             renderSchedule();
+
+            initBannerUploadEvents();
         });
+
+        // 배너 드롭존 업로드 바인딩 및 핸들러
+        function initBannerUploadEvents() {
+            const dropzone = document.getElementById('banner-dropzone');
+            const fileInput = document.getElementById('edit-profile-banner-file');
+            if (!dropzone || !fileInput) return;
+
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) await handleBannerFile(file);
+            });
+
+            ['dragenter', 'dragover'].forEach(name => {
+                dropzone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('border-brand', 'bg-brand-light/30', 'dark:bg-brand-deep/10');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(name => {
+                dropzone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('border-brand', 'bg-brand-light/30', 'dark:bg-brand-deep/10');
+                });
+            });
+
+            dropzone.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    await handleBannerFile(file);
+                }
+            });
+        }
+
+        async function handleBannerFile(file) {
+            const prompt = document.getElementById('banner-upload-prompt');
+            const preview = document.getElementById('banner-upload-preview');
+            const previewImg = document.getElementById('banner-preview-img');
+            if (!prompt || !preview || !previewImg) return;
+
+            try {
+                const optimized = await processHighResolutionImage(file);
+                uploadedBannerBase64 = optimized;
+                previewImg.src = optimized;
+                prompt.classList.add('hidden');
+                preview.classList.remove('hidden');
+                showToast("배너 이미지가 완벽하게 로드되었습니다! 🍒");
+            } catch (error) {
+                console.error(error);
+                showToast("이미지 디코딩 과정 중 실패가 발생했습니다.");
+            }
+        }
+
+        function clearUploadedBanner() {
+            uploadedBannerBase64 = null;
+            const fileInput = document.getElementById('edit-profile-banner-file');
+            if (fileInput) fileInput.value = '';
+            const prompt = document.getElementById('banner-upload-prompt');
+            const preview = document.getElementById('banner-upload-preview');
+            if (prompt && preview) {
+                prompt.classList.remove('hidden');
+                preview.classList.add('hidden');
+            }
+        }
 
         // 배경 파티클 생성기 (체리, 오렌지, 벚꽃, 별 등 방우리님 메인 테마)
         function generateBgLeaves() {
@@ -1013,7 +1137,7 @@
             if (youtubeEl) youtubeEl.href = socials.youtube || "https://www.youtube.com/@Bang_Uri";
             if (cafeEl) cafeEl.href = socials.cafe || "https://www.youtube.com/@bangurihorror";
 
-            // 🌟 [핵심 요구사항] SOOP 방송국 ID와 프로필 아바타 & 파비콘 실시간 연동
+            // 🌟 SOOP 방송국 ID와 프로필 아바타 & 파비콘 실시간 연동
             const soopId = getSoopId(socials.soop);
             const dynamicAvatarUrl = `https://stimg.afreecatv.com/LOGO/${soopId.substring(0, 2)}/${soopId}/${soopId}.jpg`;
             
@@ -1038,7 +1162,7 @@
                 let badgeClass = '', bgClass = 'p-4 rounded-2xl hover:bg-brand-light/30 dark:hover:bg-[#2c211e] border-2 border-dashed border-[#ffdcd1] dark:border-[#382620] transition-all duration-300';
                 if (notice.typeColor === 'red') { badgeClass = 'bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300'; bgClass = 'bg-brand-light/40 dark:bg-brand-deep/20 p-4 rounded-2xl border-2 border-brand/40'; } 
                 else if (notice.typeColor === 'blue') { badgeClass = 'bg-sky-100 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300'; } 
-                else { badgeClass = 'bg-gray-100 text-gray-650 dark:bg-[#3d2e2a] dark:text-gray-300'; }
+                else { badgeClass = 'bg-gray-100 text-gray-655 dark:bg-[#3d2e2a] dark:text-gray-300'; }
 
                 let linkHtml = '';
                 if (notice.link && notice.link.trim() !== '') {
@@ -1070,7 +1194,7 @@
             if (!list) return;
             list.innerHTML = '';
             const colorMap = {
-                gray: { text: 'text-[#4c443e] dark:text-gray-300', dayText: 'text-gray-650 dark:text-gray-400 bg-gray-100 dark:bg-[#2b211e]' },
+                gray: { text: 'text-[#4c443e] dark:text-gray-300', dayText: 'text-gray-655 dark:text-gray-400 bg-gray-100 dark:bg-[#2b211e]' },
                 green: { text: 'text-brand-dark dark:text-brand font-bold', dayText: 'text-white bg-brand' }
             };
 
@@ -1088,17 +1212,16 @@
             });
         }
 
-        // 아바타 주소 자동 계산
+        // 아바타 주소 계산 (SOOP 아이디 소유 여부 검증 및 이모지 대응)
         function getAvatarUrl(user) {
-            if (user.id && user.id.trim() !== '') {
+            if (user.id && user.id.trim() !== '' && !user.id.startsWith('uri_fan')) {
                 const prefix = user.id.substring(0, 2);
                 return `https://stimg.afreecatv.com/LOGO/${prefix}/${user.id}/${user.id}.jpg`;
             }
-            const safeName = user.nickname.length >= 2 ? user.nickname.substring(0,2) : user.nickname;
-            return `https://placehold.co/100x100/fcd34d/78350f?text=${encodeURIComponent(safeName)}`;
+            return ''; // 프로필이 없음을 명시적으로 표기하여 이모지 🍒 렌더링을 유도
         }
 
-        // 업보 보드 렌더링
+        // 업보 보드 렌더링 (🍒 체리 이모지 아바타 이중 완비)
         function renderUpbo(data) {
             const grid = document.getElementById('upbo-grid');
             if (!grid) return;
@@ -1110,15 +1233,22 @@
                 if (totalItems === 0 && !isAdminMode) return;
                 
                 const avatarUrl = getAvatarUrl(user);
-                const safeName = user.nickname.length >= 2 ? user.nickname.substring(0,2) : user.nickname;
                 const card = document.createElement('div');
                 card.className = 'bg-[#faf7f4] dark:bg-[#25201d] border-2 border-[#ffdcd1] dark:border-[#382620] rounded-3xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-brand-light dark:hover:bg-[#2c211e] transition-all shadow-sm relative group squishy';
                 card.onclick = () => { if (isAdminMode) openUpboEditModal(user, avatarUrl); else openUpboModal(user, avatarUrl); };
                 const adminBadge = isAdminMode ? `<div class="absolute top-3 right-3 text-gray-400 group-hover:text-brand-dark transition-colors"><i class="fa-solid fa-pen-to-square"></i></div>` : '';
 
+                // 🍒 아바타 로드 에러 및 미배정 대응 로직 적용
+                let avatarHtml = '';
+                if (avatarUrl) {
+                    avatarHtml = `<img src="${avatarUrl}" onerror="this.onerror=null; this.outerHTML='<div class=\\'w-16 h-16 rounded-full bg-brand-light dark:bg-brand-deep/30 border-4 border-white dark:border-gray-700 flex items-center justify-center text-3xl mb-3 shadow-md\\'>🍒</div>\\';" alt="${user.nickname}" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-700">`;
+                } else {
+                    avatarHtml = `<div class="w-16 h-16 rounded-full bg-brand-light dark:bg-brand-deep/30 border-4 border-white dark:border-gray-700 flex items-center justify-center text-3xl mb-3 shadow-md">🍒</div>`;
+                }
+
                 card.innerHTML = `
                     ${adminBadge}
-                    <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${encodeURIComponent(safeName)}'" alt="${user.nickname}" class="w-16 h-16 rounded-full object-cover mb-3 shadow-md bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-700">
+                    ${avatarHtml}
                     <div class="text-gray-900 dark:text-gray-100 font-bold text-sm mb-3 truncate w-full text-center">${user.nickname}</div>
                     <div class="bg-brand text-white font-black text-xs px-3.5 py-1.5 rounded-full shadow-sm">업보 ${totalItems}</div>
                 `;
@@ -1140,14 +1270,22 @@
                 </div>
             `).join('') : `<div class="text-center text-gray-500 py-6">지정된 업보 내역이 존재하지 않습니다.</div>`;
 
+            // 모달 내 아바타 🍒 Fallback
+            let headerAvatarHtml = '';
+            if (avatarUrl) {
+                headerAvatarHtml = `<img src="${avatarUrl}" onerror="this.onerror=null; this.outerHTML='<div class=\\'w-11 h-11 rounded-full bg-brand-light dark:bg-brand-deep/30 border-2 border-white flex items-center justify-center text-xl shadow-sm\\'>🍒</div>\\';" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover bg-white">`;
+            } else {
+                headerAvatarHtml = `<div class="w-11 h-11 rounded-full bg-brand-light dark:bg-brand-deep/30 border-2 border-white flex items-center justify-center text-xl shadow-sm">🍒</div>`;
+            }
+
             modal.innerHTML = `
                 <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand">
                     <div class="p-5 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620]">
                         <div class="flex items-center gap-3">
-                            <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${user.nickname.substring(0,2)}'" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover">
+                            ${headerAvatarHtml}
                             <div>
                                 <div class="text-gray-900 dark:text-white font-black text-sm">${user.nickname}</div>
-                                <div class="text-gray-400 text-xs">(${user.id})</div>
+                                <div class="text-gray-400 text-xs">(${user.id || '아이디 미지정'})</div>
                             </div>
                         </div>
                         <button onclick="closeUpboModal()" class="text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors p-2">
@@ -1210,8 +1348,16 @@
             currentEditingUserId = user.id; 
             const modal = document.getElementById('upbo-edit-modal');
             
+            // 편집 모달 내 아바타 🍒 Fallback
+            let editHeaderAvatarHtml = '';
+            if (avatarUrl) {
+                editHeaderAvatarHtml = `<img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${user.nickname.substring(0,2)}'" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover bg-white">`;
+            } else {
+                editHeaderAvatarHtml = `<div class="w-11 h-11 rounded-full bg-brand-light dark:bg-brand-deep/30 border-2 border-white flex items-center justify-center text-xl shadow-sm">🍒</div>`;
+            }
+
             document.getElementById('edit-modal-header').innerHTML = `
-                <img src="${avatarUrl}" onerror="this.src='https://placehold.co/100x100/ff8da1/ffffff?text=${user.nickname.substring(0,2)}'" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover">
+                ${editHeaderAvatarHtml}
                 <div>
                     <div class="text-gray-900 dark:text-white font-black text-sm">
                         ${user.nickname} 
@@ -1293,7 +1439,7 @@
                         <button onclick="changeItemCount(${index}, -1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-750 text-gray-655 dark:text-gray-300 hover:bg-red-100 hover:text-red-500 transition-colors"><i class="fa-solid fa-minus text-xs"></i></button>
                         <span class="font-black w-5 text-center text-gray-900 dark:text-white">${item.count}</span>
                         <button onclick="changeItemCount(${index}, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-750 text-gray-655 dark:text-gray-300 hover:bg-brand-light hover:text-brand-dark transition-colors"><i class="fa-solid fa-plus text-xs"></i></button>
-                        <button onclick="deleteItem(${index})" class="ml-1 sm:ml-2 text-gray-400 hover:text-red-500 transition-colors p-2" title="항목 삭제"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="deleteItem(${index})" class="ml-1 sm:ml-2 text-gray-400 hover:text-red-500 transition-colors p-2" title="항목 삭제"><i class="fa-solid fa-trash-can text-xs"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -1403,7 +1549,7 @@
         }
         function deleteNotice(index) { globalNoticeData.splice(index, 1); updateFirestore('notice', globalNoticeData); renderNoticeEditList(); renderNotice(); showToast("공지가 성공적으로 정리되었습니다."); }
 
-        // 일정 편집 모달
+        // 스케줄 편집 모달
         function openScheduleEditModal() {
             const modal = document.getElementById('schedule-edit-modal'); renderScheduleEditList();
             requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
@@ -1440,6 +1586,8 @@
         function openProfileEditModal() {
             const modal = document.getElementById('profile-edit-modal');
             
+            clearUploadedBanner();
+            
             document.getElementById('edit-profile-banner').value = globalProfileData.bannerUrl || "";
             document.getElementById('edit-profile-intro').value = globalProfileData.introText || ""; 
             document.getElementById('edit-profile-tags').value = (globalProfileData.tags || []).join(', ');
@@ -1459,6 +1607,19 @@
             }
 
             renderEditDdays();
+
+            // 기존 파일 링크/Base64 배너 미리보기 매핑
+            const preview = document.getElementById('banner-upload-preview');
+            const previewImg = document.getElementById('banner-preview-img');
+            const prompt = document.getElementById('banner-upload-prompt');
+            const bannerUrl = globalProfileData.bannerUrl || "";
+            if (bannerUrl && (bannerUrl.startsWith('data:image') || bannerUrl.startsWith('http'))) {
+                if (previewImg && preview && prompt) {
+                    previewImg.src = bannerUrl;
+                    prompt.classList.add('hidden');
+                    preview.classList.remove('hidden');
+                }
+            }
 
             requestAnimationFrame(() => { 
                 modal.classList.remove('opacity-0', 'pointer-events-none'); 
@@ -1510,7 +1671,17 @@
 
         function saveProfileChanges() {
             const parse = (str) => str.split(',').map(item => item.trim()).filter(item => item !== '');
-            globalProfileData.bannerUrl = document.getElementById('edit-profile-banner').value.trim();
+            
+            // 배너 직접 업로드 데이터 유무에 따른 처리
+            if (uploadedBannerBase64) {
+                globalProfileData.bannerUrl = uploadedBannerBase64;
+            } else {
+                const manualTextBanner = document.getElementById('edit-profile-banner').value.trim();
+                if (manualTextBanner) {
+                    globalProfileData.bannerUrl = manualTextBanner;
+                }
+            }
+
             globalProfileData.introText = document.getElementById('edit-profile-intro').value; 
             globalProfileData.tags = parse(document.getElementById('edit-profile-tags').value);
             
@@ -1575,6 +1746,7 @@
         window.addEditDdayRow = addEditDdayRow;
         window.deleteEditDdayRow = deleteEditDdayRow;
         window.handleDeleteUser = handleDeleteUser;
+        window.clearUploadedBanner = clearUploadedBanner;
     </script>
 </body>
 </html>

@@ -134,7 +134,7 @@
         <section id="profile" class="scroll-mt-24 flex flex-col gap-6">
             <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_12px_40px_rgba(255,220,225,0.4)] dark:shadow-none border-4 border-[#ffdcd1] dark:border-[#382620] overflow-hidden transition-all duration-300">
                 <div class="h-36 sm:h-56 w-full relative overflow-hidden bg-brand-light dark:bg-[#2a211e]">
-                    <img id="profile-banner-img" src="" 
+                    <img id="profile-banner-img" src="https://placehold.co/1200x400/ffe4e6/db2777?text=🍒+Uri+Station" 
                          onerror="this.src='https://placehold.co/1200x400/ffe4e6/db2777?text=🍒+Uri+Station'" 
                          class="w-full h-full object-cover absolute inset-0" alt="방송국 배너">
                     <div class="absolute inset-0 bg-gradient-to-t from-white/30 dark:from-black/30"></div>
@@ -145,7 +145,8 @@
                         <img class="h-32 w-32 sm:h-48 sm:w-48 rounded-full border-8 border-white dark:border-[#1f1a18] shadow-[0_8px_24px_rgba(219,39,119,0.15)] object-cover bg-white dark:bg-gray-800 transition-transform hover:rotate-6 duration-300" 
                              src="https://stimg.afreecatv.com/LOGO/ls/lsh8071/lsh8071.jpg" 
                              id="avatar-display"
-                             onerror="this.onerror=null; this.src='https://placehold.co/400x400/ff8da1/ffffff?text=Uri'"
+                             referrerpolicy="no-referrer"
+                             onerror="this.onerror=null; this.src='https://placehold.co/400x400/ff8da1/ffffff?text=Uri';"
                              alt="방우리 아바타">
                     </div>
                     
@@ -243,7 +244,6 @@
             </div>
         </section>
 
-        <!-- Notice & Schedule Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <section id="notice" class="scroll-mt-24">
                 <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_8px_30px_rgba(255,220,225,0.3)] dark:shadow-none p-6 h-full border-4 border-brand-orange/40 dark:border-brand-deep/50 transition-colors duration-300 relative">
@@ -276,7 +276,6 @@
             </section>
         </div>
 
-        <!-- Karma Section -->
         <section id="karma" class="scroll-mt-24">
             <div class="bg-white dark:bg-[#1f1a18] rounded-3xl shadow-[0_12px_40px_rgba(255,220,225,0.4)] dark:shadow-none p-6 border-4 border-brand transition-colors duration-300">
                 <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-4">
@@ -313,7 +312,6 @@
             </div>
         </section>
 
-        <!-- Admin Login Modal (Firebase Auth Email/Password) -->
         <div id="admin-login-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm p-6 transform scale-95 transition-all duration-300 border-4 border-brand">
                 <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white mb-2">
@@ -331,7 +329,6 @@
             </div>
         </div>
 
-        <!-- Upbo Edit Modal -->
         <div id="upbo-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-md overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[80vh]">
                 <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
@@ -355,7 +352,6 @@
             </div>
         </div>
 
-        <!-- Add User Modal -->
         <div id="add-user-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm p-6 transform scale-95 transition-all duration-300 border-4 border-brand">
                 <div class="flex justify-between items-center mb-4 border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] pb-3">
@@ -381,7 +377,6 @@
             </div>
         </div>
 
-        <!-- Notice Edit Modal -->
         <div id="notice-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-lg overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[85vh]">
                 <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
@@ -408,7 +403,6 @@
             </div>
         </div>
 
-        <!-- Schedule Edit Modal -->
         <div id="schedule-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[85vh]">
                 <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/40 dark:bg-brand-deep/20">
@@ -424,7 +418,6 @@
             </div>
         </div>
 
-        <!-- Profile Edit Modal -->
         <div id="profile-edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-lg overflow-hidden transform scale-95 transition-all duration-300 border-4 border-brand flex flex-col max-h-[90vh]">
                 <div class="p-4 flex items-center justify-between border-b-2 border-dashed border-[#ffdcd1] dark:border-[#382620] bg-brand-light/35 dark:bg-brand-deep/20">
@@ -711,7 +704,6 @@
             } catch (e) {}
         }
 
-        // 파이어베이스 데이터 로드 (안전한 읽기 권한 검증 방식 적용)
         async function fetchSiteData() {
             const loadingInd = document.getElementById('loading-indicator');
             if (!db) {
@@ -737,7 +729,6 @@
                             globalProfileData.socials = JSON.parse(JSON.stringify(defaultProfileData.socials));
                         }
                     } else {
-                        // 로그인된 관리자인 경우에만 최초 초기화 세팅 시도
                         if (auth && auth.currentUser) {
                             try {
                                 await docRef.set({

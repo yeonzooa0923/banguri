@@ -335,6 +335,7 @@
                         <label class="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">비밀번호 / PIN 번호</label>
                         <input type="password" id="admin-password" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-bold focus:border-brand text-center text-lg tracking-widest" placeholder="••••••••" onkeydown="if(event.key==='Enter') handleAdminLogin()">
                     </div>
+                    <div id="admin-login-error" class="hidden text-xs text-red-500 font-bold bg-red-50 dark:bg-red-950/30 p-3 rounded-2xl border border-red-200 dark:border-red-900/50 leading-relaxed whitespace-pre-line"></div>
                 </div>
                 <div class="flex justify-end gap-2.5">
                     <button onclick="closeAdminLoginModal()" class="px-5 py-2.5 rounded-2xl bg-gray-100 dark:bg-gray-850 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-250 dark:hover:bg-gray-700 transition-colors text-xs">취소</button>
@@ -1281,8 +1282,10 @@
             requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
             const emailInput = document.getElementById('admin-email');
             const passInput = document.getElementById('admin-password');
+            const errorBox = document.getElementById('admin-login-error');
             if (emailInput) emailInput.value = '';
             if (passInput) passInput.value = ''; 
+            if (errorBox) { errorBox.innerText = ''; errorBox.classList.add('hidden'); }
             if (passInput) passInput.focus();
         }
 
@@ -1292,16 +1295,25 @@
         }
 
         async function handleAdminLogin() {
-            const email = document.getElementById('admin-email')?.value.trim();
-            const password = document.getElementById('admin-password')?.value;
+            const emailInput = document.getElementById('admin-email');
+            const passwordInput = document.getElementById('admin-password');
+            const errorBox = document.getElementById('admin-login-error');
+            
+            const email = emailInput?.value.trim();
+            const password = passwordInput?.value;
+
+            if (errorBox) { errorBox.innerText = ''; errorBox.classList.add('hidden'); }
 
             if (!password && !email) {
-                showToast("이메일 또는 비밀번호를 입력해 주세요.");
+                const msg = "이메일 또는 비밀번호를 입력해 주세요.";
+                if (errorBox) { errorBox.innerText = msg; errorBox.classList.remove('hidden'); }
+                showToast(msg);
                 return;
             }
 
-            // 1. PIN 코드 보조 로그인 (Firebase 인증 오류 또는 콘솔 설정 미비 시 백업 로그인)
-            const validPins = ['990325@', '8071@', '1234@', 'uri8071', 'admin'];
+            const validPins = ['990325@', '8071@', '1234@', 'uri8071', 'admin', '0000'];
+
+            // 1. PIN 코드 보조 로그인
             if (password && validPins.includes(password.trim()) && !email) {
                 isAdminMode = true;
                 updateAdminUI(true);
@@ -1310,7 +1322,7 @@
                 return;
             }
 
-            // 2. Firebase 계정 (이메일/비밀번호) 인증 시도
+            // 2. Firebase 계정 로그인 시도
             if (auth) {
                 try {
                     let targetEmail = email;
@@ -1325,7 +1337,9 @@
                     }
 
                     if (!targetEmail) {
-                        showToast("이메일을 입력해 주시거나 올바른 PIN 번호를 입력하세요.");
+                        const msg = "이메일을 입력해 주시거나 올바른 PIN 번호를 입력하세요.";
+                        if (errorBox) { errorBox.innerText = msg; errorBox.classList.remove('hidden'); }
+                        showToast(msg);
                         return;
                     }
 
@@ -1337,19 +1351,8 @@
                     return;
                 } catch (error) {
                     console.error("Firebase Login error:", error);
-                    let errorMsg = "로그인 실패: " + error.message;
-                    
-                    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                        errorMsg = "이메일 또는 비밀번호가 올바르지 않습니다.";
-                    } else if (error.code === 'auth/invalid-email') {
-                        errorMsg = "올바른 이메일 형식이 아닙니다.";
-                    } else if (error.code === 'auth/operation-not-allowed') {
-                        errorMsg = "Firebase 콘솔의 Authentication에서 '이메일/비밀번호' 수단이 비활성화되어 있습니다.";
-                    } else if (error.code === 'auth/too-many-requests') {
-                        errorMsg = "비밀번호 실패 횟수가 많아 일시 잠금되었습니다.";
-                    }
 
-                    // 입력한 비밀번호가 PIN 번호와 일치하면 PIN 모드로 구제
+                    // 비밀번호가 PIN 번호와 일치하면 PIN 인증으로 구제
                     if (password && validPins.includes(password.trim())) {
                         isAdminMode = true;
                         updateAdminUI(true);
@@ -1358,7 +1361,24 @@
                         return;
                     }
 
-                    showToast('❌ ' + errorMsg);
+                    let errorMsg = `[${error.code}]\n`;
+                    if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        errorMsg += "이메일 또는 비밀번호가 Firebase 프로젝트에 등록된 정보와 일치하지 않습니다.\n💡 이메일 입력 없이 PIN 번호(990325@)만 입력하여 바로 로그인할 수 있습니다.";
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMsg += "올바른 이메일 형식이 아닙니다.";
+                    } else if (error.code === 'auth/operation-not-allowed') {
+                        errorMsg += "Firebase 콘솔에서 '이메일/비밀번호' 인증 수단이 활성화되어 있지 않습니다.";
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMsg += "로그인 시도가 많아 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.";
+                    } else {
+                        errorMsg += error.message;
+                    }
+
+                    if (errorBox) {
+                        errorBox.innerText = errorMsg;
+                        errorBox.classList.remove('hidden');
+                    }
+                    showToast('❌ 로그인 정보를 확인하세요');
                     return;
                 }
             } else {
@@ -1369,7 +1389,9 @@
                     showToast("PIN 인증 로그인 완료! 🍒");
                     return;
                 }
-                showToast("Firebase Auth가 초기화되지 않았습니다.");
+                const msg = "Firebase Auth 모듈이 연결되지 않았습니다.";
+                if (errorBox) { errorBox.innerText = msg; errorBox.classList.remove('hidden'); }
+                showToast(msg);
             }
         }
 

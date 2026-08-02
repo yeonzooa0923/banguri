@@ -106,11 +106,19 @@
                     <a href="#schedule" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">주간 일정</a>
                     <a href="#karma" class="text-gray-650 dark:text-gray-300 hover:text-brand-dark hover:bg-brand-light/50 dark:hover:bg-brand-deep/20 px-3.5 py-2 rounded-2xl text-sm font-bold transition-all">업보 현황</a>
                     
+                    <button id="admin-header-login-btn" onclick="openAdminLoginModal()" class="bg-brand-light dark:bg-brand-deep/30 hover:bg-brand text-brand-dark dark:text-brand hover:text-white px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 border border-brand/40 shadow-sm" title="관리인증">
+                        <i class="fa-solid fa-key text-xs"></i>
+                        <span id="admin-header-btn-text">관리자</span>
+                    </button>
+
                     <button id="theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-brand-light dark:hover:bg-[#25211e] p-2.5 rounded-2xl transition-all squishy">
                         <i class="fa-solid fa-moon text-lg w-5 h-5 flex items-center justify-center"></i>
                     </button>
                 </nav>
                 <div class="md:hidden flex items-center gap-2">
+                    <button onclick="openAdminLoginModal()" class="text-brand-dark dark:text-brand hover:bg-brand-light p-2.5 rounded-2xl transition-colors text-sm font-black" title="관리인증">
+                        🔑
+                    </button>
                     <button id="mobile-theme-toggle" class="text-gray-500 dark:text-gray-400 hover:bg-brand-light dark:hover:bg-[#25211e] p-2.5 rounded-2xl transition-colors squishy">
                         <i class="fa-solid fa-moon text-lg w-5 h-5 flex items-center justify-center"></i>
                     </button>
@@ -315,16 +323,24 @@
         <div id="admin-login-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
             <div class="bg-[#fffcf9] dark:bg-[#25211e] rounded-3xl shadow-2xl w-11/12 max-w-sm p-6 transform scale-95 transition-all duration-300 border-4 border-brand">
                 <h3 class="text-xl font-bold font-cute text-gray-950 dark:text-white mb-2">
-                    <i class="fa-solid fa-lock text-brand mr-1"></i> 관리자 계정 인증
+                    <i class="fa-solid fa-lock text-brand mr-1"></i> 관리자 인증 센터
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 font-semibold">이메일과 비밀번호를 입력하여 로그인하세요.</p>
-                <div class="space-y-2 mb-4 text-left font-semibold">
-                    <input type="email" id="admin-email" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-bold focus:border-brand text-xs" placeholder="관리자 이메일">
-                    <input type="password" id="admin-password" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-bold focus:border-brand text-xs" placeholder="비밀번호" onkeydown="if(event.key==='Enter') handleAdminLogin()">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 font-semibold">방우리 비밀번호 / PIN 번호 또는 계정 정보를 입력하세요.</p>
+                <div class="space-y-3 mb-4 text-left font-semibold">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">비밀번호 / PIN 인증</label>
+                        <input type="password" id="admin-password" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-3 outline-none font-bold focus:border-brand text-center text-lg tracking-widest" placeholder="••••••••" onkeydown="if(event.key==='Enter') handleAdminLogin()">
+                    </div>
+                    <div class="text-center">
+                        <span class="text-[10px] text-gray-400 font-bold">- 또는 계정 로그인 -</span>
+                    </div>
+                    <div>
+                        <input type="email" id="admin-email" class="w-full bg-white dark:bg-[#181514] border-2 border-[#ffdcd1] dark:border-[#382620] text-gray-900 dark:text-gray-200 rounded-2xl p-2.5 outline-none font-bold focus:border-brand text-xs" placeholder="이메일 계정 (선택)">
+                    </div>
                 </div>
                 <div class="flex justify-end gap-2.5">
                     <button onclick="closeAdminLoginModal()" class="px-5 py-2.5 rounded-2xl bg-gray-100 dark:bg-gray-850 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-250 dark:hover:bg-gray-700 transition-colors text-xs">취소</button>
-                    <button onclick="handleAdminLogin()" class="px-5 py-2.5 rounded-2xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors text-xs">로그인</button>
+                    <button onclick="handleAdminLogin()" class="px-5 py-2.5 rounded-2xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors text-xs">인증 완료</button>
                 </div>
             </div>
         </div>
@@ -565,14 +581,16 @@
                         auth = firebase.auth();
 
                         auth.onAuthStateChanged((user) => {
-                            if (user) {
+                            if (user && !user.isAnonymous) {
                                 isAdminMode = true;
                                 updateAdminUI(true);
-                            } else {
-                                isAdminMode = false;
-                                updateAdminUI(false);
                             }
                         });
+
+                        // Anonymous auth fallback to allow Firestore read/write
+                        if (!auth.currentUser) {
+                            auth.signInAnonymously().catch(e => console.warn("Anonymous auth optional notice:", e.message));
+                        }
 
                         return true;
                     } catch (error) {
@@ -590,17 +608,29 @@
             const noticeBtn = document.getElementById('admin-notice-edit-btn');
             const scheduleBtn = document.getElementById('admin-schedule-edit-btn');
             const profileBtn = document.getElementById('admin-profile-edit-btn');
+            const headerBtnText = document.getElementById('admin-header-btn-text');
+            const headerBtn = document.getElementById('admin-header-login-btn');
 
             if (isLoggedIn) {
                 if (addBtn) { addBtn.classList.remove('hidden'); addBtn.classList.add('flex'); }
                 if (noticeBtn) noticeBtn.classList.remove('hidden');
                 if (scheduleBtn) scheduleBtn.classList.remove('hidden');
                 if (profileBtn) profileBtn.classList.remove('hidden');
+                if (headerBtnText) headerBtnText.innerText = "관리자 (ON)";
+                if (headerBtn) {
+                    headerBtn.classList.add('bg-brand', 'text-white');
+                    headerBtn.classList.remove('bg-brand-light', 'text-brand-dark');
+                }
             } else {
                 if (addBtn) { addBtn.classList.add('hidden'); addBtn.classList.remove('flex'); }
                 if (noticeBtn) noticeBtn.classList.add('hidden');
                 if (scheduleBtn) scheduleBtn.classList.add('hidden');
                 if (profileBtn) profileBtn.classList.add('hidden');
+                if (headerBtnText) headerBtnText.innerText = "관리자";
+                if (headerBtn) {
+                    headerBtn.classList.remove('bg-brand', 'text-white');
+                    headerBtn.classList.add('bg-brand-light', 'text-brand-dark');
+                }
             }
             renderUpbo(globalUpboData);
         }
@@ -729,23 +759,21 @@
                             globalProfileData.socials = JSON.parse(JSON.stringify(defaultProfileData.socials));
                         }
                     } else {
-                        if (auth && auth.currentUser) {
-                            try {
-                                await docRef.set({
-                                    upbo: defaultUpboData, 
-                                    notice: defaultNoticeData, 
-                                    schedule: defaultScheduleData, 
-                                    profile: defaultProfileData
-                                });
-                            } catch (e) { console.warn("초기 생성 권한 없음:", e); }
-                        }
+                        try {
+                            await docRef.set({
+                                upbo: defaultUpboData, 
+                                notice: defaultNoticeData, 
+                                schedule: defaultScheduleData, 
+                                profile: defaultProfileData
+                            }, { merge: true });
+                        } catch (e) { console.warn("초기 생성 권한 소식:", e); }
                         globalUpboData = defaultUpboData; 
                         globalNoticeData = defaultNoticeData; 
                         globalScheduleData = defaultScheduleData; 
                         globalProfileData = defaultProfileData;
                     }
                 } catch (error) {
-                    console.warn("Firestore 데이터 읽기 제한 또는 미설정. 로컬 데이터로 대체합니다:", error.message);
+                    console.warn("Firestore 데이터 읽기 제한. 로컬 데이터로 대체합니다:", error.message);
                     fallbackToLocal();
                 }
                 if (loadingInd) loadingInd.classList.add('hidden');
@@ -770,11 +798,11 @@
 
         async function updateFirestore(key, data) {
             safeSetStorage(`bangUri${key.charAt(0).toUpperCase() + key.slice(1)}Data`, data);
-            if (db && auth && auth.currentUser) {
+            if (db) {
                 try { 
-                    await db.collection('uriProfile').doc('siteData').update({ [key]: data }); 
+                    await db.collection('uriProfile').doc('siteData').set({ [key]: data }, { merge: true }); 
                 } catch (error) { 
-                    console.error("데이터 저장 실패:", error); 
+                    console.warn("Firestore update error:", error.message); 
                 }
             }
         }
@@ -1242,18 +1270,24 @@
         }
 
         function openAdminLoginModal() {
-            if (isAdminMode && auth && auth.currentUser) {
-                if (confirm(`현재 [${auth.currentUser.email}] 계정으로 로그인되어 있습니다.\n로그아웃 하시겠습니까?`)) {
-                    auth.signOut().then(() => {
-                        showToast("로그아웃 되었습니다. 🍒");
-                    });
+            if (isAdminMode) {
+                if (confirm(`현재 관리자 모드로 로그인되어 있습니다.\n로그아웃 하시겠습니까?`)) {
+                    isAdminMode = false;
+                    if (auth && auth.currentUser && !auth.currentUser.isAnonymous) {
+                        auth.signOut();
+                    }
+                    updateAdminUI(false);
+                    showToast("로그아웃 되었습니다. 🍒");
                 }
                 return;
             }
             const modal = document.getElementById('admin-login-modal');
             requestAnimationFrame(() => { modal.classList.remove('opacity-0', 'pointer-events-none'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); });
-            document.getElementById('admin-email').value = '';
-            document.getElementById('admin-password').value = ''; 
+            const passInput = document.getElementById('admin-password');
+            const emailInput = document.getElementById('admin-email');
+            if (passInput) passInput.value = '';
+            if (emailInput) emailInput.value = ''; 
+            if (passInput) passInput.focus();
         }
 
         function closeAdminLoginModal() {
@@ -1262,32 +1296,49 @@
         }
 
         async function handleAdminLogin() {
-            const email = document.getElementById('admin-email').value.trim();
-            const password = document.getElementById('admin-password').value;
+            const email = document.getElementById('admin-email')?.value.trim();
+            const password = document.getElementById('admin-password')?.value;
 
-            if (!email || !password) {
-                showToast("이메일과 비밀번호를 모두 입력해주세요.");
+            if (!password && !email) {
+                showToast("비밀번호 또는 PIN 번호를 입력해주세요.");
                 return;
             }
 
-            if (!auth) {
-                showToast("Firebase Auth 모듈이 초기화되지 않았습니다.");
-                return;
-            }
+            // Valid PIN codes for easy admin access without registered Firebase accounts
+            const validPins = ['990325@', '8071@', '1234@', 'uri8071'];
 
-            try {
-                await auth.signInWithEmailAndPassword(email, password);
+            if (validPins.includes(password)) {
+                isAdminMode = true;
+                updateAdminUI(true);
                 closeAdminLoginModal();
-                showToast("매니저 모드로 로그인 되었습니다! 🍒");
-                document.getElementById('admin-password').value = '';
-            } catch (error) {
-                console.error("Login failed:", error);
-                let msg = '로그인에 실패했습니다.';
-                if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    msg = '계정 정보가 올바르지 않습니다.';
-                }
-                showToast('❌ ' + msg);
+                showToast("방우리 관리자 인증 완료! 🍒");
+                return;
             }
+
+            if (email && password && auth) {
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    isAdminMode = true;
+                    updateAdminUI(true);
+                    closeAdminLoginModal();
+                    showToast("매니저 계정 로그인 성공! 🍒");
+                    return;
+                } catch (error) {
+                    console.warn("Account Auth warning:", error.message);
+                }
+            }
+
+            const input = document.getElementById('admin-password');
+            if (input) {
+                input.classList.add('border-red-500');
+                input.value = '';
+                input.placeholder = '비밀번호 불일치!';
+                setTimeout(() => {
+                    input.classList.remove('border-red-500');
+                    input.placeholder = '••••••••';
+                }, 1800);
+            }
+            showToast('❌ 계정 또는 PIN 인증번호가 올바르지 않습니다.');
         }
 
         function saveUpboData() { updateFirestore('upbo', globalUpboData); }
